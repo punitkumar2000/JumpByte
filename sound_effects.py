@@ -39,6 +39,24 @@ class SoundEffects:
                 duration=0.10,
                 volume=0.25,
             )
+            self.powerup_sound = self._make_tone(
+                start_frequency=620,
+                end_frequency=1480,
+                duration=0.24,
+                volume=0.32,
+            )
+            self.checkpoint_sound = self._make_tone(
+                start_frequency=780,
+                end_frequency=1180,
+                duration=0.18,
+                volume=0.28,
+            )
+            self.damage_sound = self._make_tone(
+                start_frequency=520,
+                end_frequency=140,
+                duration=0.22,
+                volume=0.35,
+            )
             self.enabled = True
         except pygame.error:
             # The game can still run if the computer has no audio device.
@@ -72,12 +90,15 @@ class SoundEffects:
     def play_jump(self):
         if self.enabled and not self.muted:
             self.jump_sound.play()
-            self.damage_sound = self._make_tone(
-                start_frequency=520,
-                end_frequency=140,
-                duration=0.22,
-                volume=0.35,
-            )
+
+    def play_powerup(self):
+        if self.enabled and not self.muted:
+            self.powerup_sound.play()
+
+    def play_checkpoint(self):
+        if self.enabled and not self.muted:
+            self.checkpoint_sound.play()
+
     def play_damage(self):
         if self.enabled and not self.muted:
             self.damage_sound.play()

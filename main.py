@@ -1,4 +1,4 @@
-"""Start the Cloudbound Trail platform game."""
+"""Start the JumpByte platform game."""
 
 from game import Game
 
