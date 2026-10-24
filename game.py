@@ -1,5 +1,7 @@
 """Main game loop and integration for players, stages, enemies, and projectiles."""
 
+import math
+
 import pygame
 
 from levels import (
@@ -10,9 +12,11 @@ from levels import (
     build_stage_five,
 )
 from player import Player
-from settings import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, SKY, WINDOW_TITLE
+from effects import ParticleSystem
+from settings import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_TITLE
 from ui import UI
 from sound_effects import SoundEffects
+from save_data import load_best_score, save_best_score
 
 
 class Game:
@@ -20,12 +24,17 @@ class Game:
         pygame.init()
         self.sounds = SoundEffects()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.world_surface = pygame.Surface(
+            (1600, SCREEN_HEIGHT), pygame.SRCALPHA
+        )
         pygame.display.set_caption(WINDOW_TITLE)
         self.clock = pygame.time.Clock()
         self.ui = UI()
+        self.best_score = load_best_score()
         self.running = True
         self.started = False
         self.camera_x = 0
+        self.stage_intro_timer = 0.0
         self.reset_stage()
 
     def reset_stage(self):
@@ -37,12 +46,24 @@ class Game:
         self.stomp_effect_timer = 0
         self.stomp_effect_pos = (0, 0)
         self.player_lives = 3
+        self.score = 0
         self.hit_cooldown = 0
+        self.checkpoint_message_timer = 0.0
         self.game_over = False
         self.game_won = False
         self.paused = False
         self.exit_locked = False
         self.camera_x = 0
+        self.particles = ParticleSystem()
+        self.camera_shake_timer = 0
+        self.prepare_background()
+
+    def add_score(self, points):
+        """Award points and persist a new personal best immediately."""
+        self.score += points
+        if self.score > self.best_score:
+            self.best_score = self.score
+            save_best_score(self.best_score)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -51,6 +72,7 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self.started = True
+                    self.stage_intro_timer = 1.8
                 elif (
                     event.key == pygame.K_p
                     and self.started
@@ -65,6 +87,7 @@ class Game:
                 ):
                     self.reset_stage()
                     self.started = True
+                    self.stage_intro_timer = 1.8
 
     def lose_life(self):
         if self.hit_cooldown > 0 or self.game_over:
@@ -72,9 +95,12 @@ class Game:
 
         self.player_lives -= 1
         self.sounds.play_damage()
+        self.particles.burst(*self.player.rect.center, (255, 105, 115), 16, 190)
+        self.camera_shake_timer = 18
         self.hit_cooldown = 75
         self.player.rect.topleft = self.respawn_position
         self.player.velocity_y = 0
+        self.player.on_ground = False
 
         if self.player_lives <= 0:
             self.game_over = True
@@ -96,6 +122,8 @@ class Game:
         if not reached_exit or not all_coins_collected or boss_alive:
             return
 
+        self.add_score(500)
+
         if self.stage_number == 1:
             self.stage_number = 2
             self.stage = build_stage_two()
@@ -109,17 +137,21 @@ class Game:
             self.stage_number = 5
             self.stage = build_stage_five()
         else:
+            self.add_score(1000)
             self.game_won = True
             return
 
+        self.stage_intro_timer = 1.8
+        self.prepare_background()
         self.player = Player(60, 400)
         self.respawn_position = (60, 400)
+        self.checkpoint_message_timer = 0.0
         self.bullets.clear()
         self.stomp_effect_timer = 0
         self.exit_locked = False
         self.camera_x = 0
 
-    def update(self):
+    def update(self, dt=1 / FPS):
         if (
             not self.started
             or self.game_over
@@ -128,8 +160,16 @@ class Game:
         ):
             return
 
+        self.stage_intro_timer = max(0.0, self.stage_intro_timer - dt)
+        self.checkpoint_message_timer = max(
+            0.0, self.checkpoint_message_timer - dt
+        )
+
         if self.stomp_effect_timer > 0:
             self.stomp_effect_timer -= 1
+        if self.camera_shake_timer > 0:
+            self.camera_shake_timer -= 1
+        self.particles.update(dt)
 
         keys = pygame.key.get_pressed()
         jump_pressed = (
@@ -140,12 +180,40 @@ class Game:
 
         if jump_pressed and self.player.on_ground:
             self.sounds.play_jump()
+            self.particles.burst(
+                self.player.rect.centerx, self.player.rect.bottom,
+                (205, 190, 155), 8, 75,
+            )
 
+        was_airborne = not self.player.on_ground
+        previous_vertical_speed = self.player.velocity_y
         self.player.update(keys, self.stage["platforms"])
+        if was_airborne and self.player.on_ground and previous_vertical_speed > 0:
+            landing_color = (225, 245, 255) if self.stage_number == 4 else (205, 190, 155)
+            self.particles.burst(
+                self.player.rect.centerx, self.player.rect.bottom,
+                landing_color, 8, 80,
+            )
 
-        # X=800 cross karne par checkpoint activate hota hai.
-        if self.player.rect.centerx >= 800:
-            self.respawn_position = (760, 450)
+        for hazard in self.stage.get("hazards", []):
+            if hazard.rect.colliderect(self.player.rect):
+                self.lose_life()
+                break
+
+        # First time crossing the midpoint activates a properly floor-aligned
+        # checkpoint and gives clear visual/audio feedback.
+        if (
+            self.player.rect.centerx >= 800
+            and self.respawn_position == (60, 400)
+        ):
+            self.respawn_position = (
+                760,
+                490 - self.player.rect.height,
+            )
+            self.checkpoint_message_timer = 1.8
+            self.add_score(200)
+            self.particles.burst(800, 350, (115, 255, 160), 22, 150)
+            self.sounds.play_checkpoint()
 
         if self.hit_cooldown > 0:
             self.hit_cooldown -= 1
@@ -164,15 +232,21 @@ class Game:
                 ):
                     self.stomp_effect_pos = enemy.rect.center
                     self.stomp_effect_timer = 18
+                    self.particles.burst(
+                        *enemy.rect.center, (255, 190, 95), 18, 210
+                    )
                     self.sounds.play_stomp()
                     self.player.velocity_y = -10
                     self.hit_cooldown = 18
 
                     if getattr(enemy, "is_boss", False):
+                        self.add_score(250)
                         enemy.health -= 1
                         if enemy.health <= 0:
+                            self.add_score(500)
                             self.stage["enemies"].remove(enemy)
                     else:
+                        self.add_score(200)
                         self.stage["enemies"].remove(enemy)
                 else:
                     self.lose_life()
@@ -191,12 +265,19 @@ class Game:
         for coin in self.stage["coins"]:
             if not coin.collected and self.player.rect.colliderect(coin.rect):
                 coin.collected = True
+                self.add_score(100)
                 self.sounds.play_coin()
+                self.particles.burst(*coin.rect.center, (255, 220, 85), 14, 165)
 
         for powerup in self.stage.get("powerups", []):
             if not powerup.collected and self.player.rect.colliderect(powerup.rect):
                 powerup.collected = True
                 self.player.speed_boost_timer = 300
+                self.add_score(50)
+                self.sounds.play_powerup()
+                self.particles.burst(
+                    *powerup.rect.center, (120, 235, 255), 20, 185
+                )
 
         self.check_stage_exit()
 
@@ -208,7 +289,7 @@ class Game:
             ),
         )
 
-    def draw_exit_gate(self, world):
+    def draw_exit_gate(self, world, locked=True):
         # Gate pole and base
         pygame.draw.rect(world, (90, 70, 55), (1530, 405, 8, 85))
         pygame.draw.rect(world, (145, 115, 80), (1527, 480, 14, 10))
@@ -219,18 +300,34 @@ class Game:
         tip_x = 1580 if wave == 0 else 1573
         middle_y = 421 if wave == 0 else 424
 
+        flag_color = (155, 165, 185) if locked else (245, 190, 65)
         pygame.draw.polygon(
             world,
-            (245, 190, 65),
+            flag_color,
             [(1538, 405), (tip_x, middle_y), (1538, 438)],
         )
         pygame.draw.line(
             world,
-            (255, 230, 145),
+            (215, 220, 235) if locked else (255, 230, 145),
             (1541, 411),
             (tip_x - 8, middle_y),
             2,
         )
+        if locked:
+            pygame.draw.arc(
+                world, (220, 220, 230), (1542, 447, 12, 13),
+                math.pi, 2 * math.pi, 2,
+            )
+            pygame.draw.rect(
+                world, (220, 220, 230), (1541, 453, 14, 11),
+                border_radius=2,
+            )
+        else:
+            pulse = (math.sin(pygame.time.get_ticks() / 160) + 1) / 2
+            pygame.draw.circle(
+                world, (255, 225, 125, 90 + round(pulse * 90)),
+                (1538, 421), 18 + round(pulse * 3), 2,
+            )
 
     def draw_scenery(self, world):
         if self.stage_number == 1:
@@ -238,24 +335,6 @@ class Game:
             pygame.draw.ellipse(world, (125, 190, 120), (-100, 365, 650, 260))
             pygame.draw.ellipse(world, (105, 175, 105), (400, 390, 750, 250))
             pygame.draw.ellipse(world, (85, 155, 95), (950, 360, 750, 280))
-
-            # Clouds
-            for x, y in [
-                (120, 115),
-                (410, 175),
-                (760, 95),
-                (1190, 145),
-                (1450, 80),
-            ]:
-                pygame.draw.ellipse(
-                    world, (240, 250, 255), (x, y + 8, 55, 22)
-                )
-                pygame.draw.circle(
-                    world, (240, 250, 255), (x + 18, y + 8), 16
-                )
-                pygame.draw.circle(
-                    world, (240, 250, 255), (x + 38, y + 5), 20
-                )
 
             # Small flowers in the meadow
             for x, y, color in [
@@ -278,21 +357,6 @@ class Game:
                 )
 
         elif self.stage_number == 2:
-            # Moonlit Cave stars
-            stars = [
-                (100, 80),
-                (260, 145),
-                (430, 65),
-                (620, 125),
-                (810, 75),
-                (990, 150),
-                (1190, 90),
-                (1400, 135),
-                (1530, 60),
-            ]
-            for x, y in stars:
-                pygame.draw.circle(world, (225, 225, 255), (x, y), 3)
-
             # Hanging cave rocks
             for x, width, height in [
                 (80, 100, 75),
@@ -418,22 +482,8 @@ class Game:
                 [(1390, 170), (1335, 235), (1385, 218), (1420, 245)],
             )
 
-            # Snowflakes
-            for x, y in [
-                (100, 120), (330, 90), (720, 145), (890, 85),
-                (1150, 135), (1490, 95), (570, 210), (1280, 230),
-            ]:
-                pygame.draw.circle(world, (245, 252, 255), (x, y), 3)
-
         else:
             # Skyforge Citadel: starry sky and floating towers
-            for x, y, radius in [
-                (100, 90, 3), (260, 155, 2), (440, 75, 3),
-                (620, 125, 2), (820, 80, 3), (1010, 145, 2),
-                (1190, 70, 3), (1420, 125, 2), (1530, 65, 3),
-            ]:
-                pygame.draw.circle(world, (245, 235, 180), (x, y), radius)
-
             pygame.draw.circle(world, (245, 205, 130), (1320, 175), 52)
             pygame.draw.circle(world, (255, 225, 165), (1320, 175), 38)
 
@@ -466,24 +516,72 @@ class Game:
             pygame.draw.rect(world, (255, 215, 115), (535, 315, 22, 35))
             pygame.draw.rect(world, (130, 225, 255), (643, 365, 18, 30))
 
-    def draw(self):
-        self.screen.fill(SKY)
+    def prepare_background(self):
+        """Cache the detailed scenery so it scrolls behind the gameplay layer."""
+        self.background_surface = pygame.Surface((1600, SCREEN_HEIGHT))
+        self.background_surface.fill(self.stage["info"]["background"])
+        self.draw_scenery(self.background_surface)
 
-        if not self.started:
-            self.ui.draw_start(self.screen)
-        elif self.game_over:
-            self.ui.draw_game_over(self.screen)
-        elif self.game_won:
-            self.ui.draw_win(self.screen)
-        elif self.paused:
-            self.ui.draw_pause(self.screen)
-        else:
-            world = pygame.Surface((1600, SCREEN_HEIGHT))
-            world.fill(self.stage["info"]["background"])
-            self.draw_scenery(world)
+    def draw_ambient(self, surface):
+        """Add lightweight animated weather and sky details for each world."""
+        time = pygame.time.get_ticks() / 1000
+
+        if self.stage_number == 1:
+            cloud_y = (88, 145, 72, 118, 60)
+            for index, base_x in enumerate((80, 420, 790, 1160, 1530)):
+                x = int((base_x - time * 11) % 1780 - self.camera_x * 0.16)
+                y = cloud_y[index]
+                if -90 < x < SCREEN_WIDTH + 70:
+                    cloud = (240, 250, 255)
+                    pygame.draw.ellipse(surface, cloud, (x, y + 9, 62, 25))
+                    pygame.draw.circle(surface, cloud, (x + 20, y + 9), 18)
+                    pygame.draw.circle(surface, cloud, (x + 43, y + 7), 22)
+
+        elif self.stage_number in (2, 5):
+            stars = [
+                (70, 82), (190, 145), (310, 66), (455, 115), (585, 58),
+                (730, 136), (860, 78), (1010, 125), (1180, 60),
+                (1340, 142), (1510, 90),
+            ]
+            for index, (x, y) in enumerate(stars):
+                screen_x = int(x - self.camera_x * 0.22)
+                if 0 <= screen_x < SCREEN_WIDTH:
+                    brightness = 170 + int((math.sin(time * 2.4 + index) + 1) * 42)
+                    color = (brightness, brightness, 255) if self.stage_number == 2 else (255, 235, brightness)
+                    pygame.draw.circle(
+                        surface, color, (screen_x, y),
+                        1 + int(index % 3 == 0),
+                    )
+                    if index % 4 == 0 and brightness > 245:
+                        pygame.draw.line(surface, color, (screen_x - 4, y), (screen_x + 4, y), 1)
+                        pygame.draw.line(surface, color, (screen_x, y - 4), (screen_x, y + 4), 1)
+
+        elif self.stage_number == 4:
+            for index in range(30):
+                speed = 22 + (index % 5) * 8
+                x = int((index * 97 + math.sin(time + index) * 18 - time * speed) % SCREEN_WIDTH)
+                y = int((index * 61 + time * speed * 1.35) % SCREEN_HEIGHT)
+                pygame.draw.line(surface, (238, 250, 255), (x, y), (x - 2, y + 6), 2)
+
+    def draw(self):
+        self.screen.fill(self.stage["info"]["background"])
+        self.screen.blit(
+            self.background_surface,
+            (-int(self.camera_x * 0.28), 0),
+        )
+        self.draw_ambient(self.screen)
+
+        # Keep the last gameplay frame visible behind pause, win, and
+        # game-over panels. The simulation is already stopped in update().
+        if self.started:
+            world = self.world_surface
+            world.fill((0, 0, 0, 0))
 
             for platform in self.stage["platforms"]:
                 platform.draw(world)
+
+            for hazard in self.stage.get("hazards", []):
+                hazard.draw(world)
 
             # Gray checkpoint becomes green after activation.
             flag_color = (
@@ -523,9 +621,21 @@ class Game:
             for bullet in self.bullets:
                 bullet.draw(world)
 
-            self.draw_exit_gate(world)
-            self.player.draw(world)
-            self.screen.blit(world, (-self.camera_x, 0))
+            boss_alive = any(
+                getattr(enemy, "is_boss", False)
+                for enemy in self.stage["enemies"]
+            )
+            coins_missing = any(
+                not coin.collected for coin in self.stage["coins"]
+            )
+            self.draw_exit_gate(world, locked=coins_missing or boss_alive)
+            self.player.draw(world, self.hit_cooldown)
+            self.particles.draw(world)
+
+            shake = self.camera_shake_timer / 18
+            shake_x = round(math.sin(pygame.time.get_ticks() * 0.09) * 4 * shake)
+            shake_y = round(math.cos(pygame.time.get_ticks() * 0.12) * 2 * shake)
+            self.screen.blit(world, (-self.camera_x + shake_x, shake_y))
 
             coin_count = sum(
                 1 for coin in self.stage["coins"] if coin.collected
@@ -536,6 +646,11 @@ class Game:
                 coin_count,
                 self.player_lives,
                 self.player.speed_boost_timer,
+                total_coins=len(self.stage["coins"]),
+                progress=self.player.rect.centerx / 1600,
+                stage_number=self.stage_number,
+                sound_muted=self.sounds.muted,
+                score=self.score,
             )
 
             # Exit par coins baaki hon toh player ko reason dikhega.
@@ -553,23 +668,46 @@ class Game:
                 else:
                     message_text = "Collect all coins to unlock the exit!"
 
-                message = self.ui.font.render(
-                    message_text,
-                    True,
-                    (255, 255, 255),
+                self.ui.draw_banner(
+                    self.screen, message_text, SCREEN_HEIGHT - 44
                 )
-                message_rect = message.get_rect(
-                    center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 42)
+
+            if self.checkpoint_message_timer > 0:
+                alpha = (
+                    220 if self.checkpoint_message_timer > 0.3
+                    else round(220 * self.checkpoint_message_timer / 0.3)
                 )
-                self.screen.blit(message, message_rect)
+                self.ui.draw_banner(
+                    self.screen,
+                    "Checkpoint reached! You will respawn here.",
+                    SCREEN_HEIGHT - 92,
+                    alpha,
+                )
+
+            if self.stage_intro_timer > 0:
+                self.ui.draw_world_intro(
+                    self.screen,
+                    self.stage_number,
+                    self.stage["info"]["name"],
+                    self.stage_intro_timer,
+                )
+
+        if not self.started:
+            self.ui.draw_start(self.screen)
+        elif self.game_over:
+            self.ui.draw_game_over(self.screen, self.score, self.best_score)
+        elif self.game_won:
+            self.ui.draw_win(self.screen, self.score, self.best_score)
+        elif self.paused:
+            self.ui.draw_pause(self.screen)
 
         pygame.display.flip()
 
     def run(self):
         while self.running:
             self.handle_events()
-            self.update()
+            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
+            self.update(dt)
             self.draw()
-            self.clock.tick(FPS)
 
         pygame.quit()
