@@ -1,7 +1,7 @@
 """Layouts for all five JumpByte worlds."""
 
 from enemy import Boss, Enemy
-from objects import Coin, Platform, PowerUp
+from objects import Coin, Hazard, Platform, PowerUp
 
 
 def build_stage_one():
@@ -21,6 +21,7 @@ def build_stage_one():
         ]
     ]
     powerups = [PowerUp(740, 370)]
+    hazards = [Hazard(885, 490, color=(95, 155, 75))]
     enemies = [Enemy(560, 460, 520, 650)]
     info = {
         "name": "Green Meadow",
@@ -31,6 +32,7 @@ def build_stage_one():
         "platforms": platforms,
         "coins": coins,
         "powerups": powerups,
+        "hazards": hazards,
         "enemies": enemies,
         "info": info,
     }
@@ -57,6 +59,10 @@ def build_stage_two():
         Enemy(520, 460, 470, 590),
         Enemy(1030, 460, 970, 1080),
     ]
+    hazards = [
+        Hazard(770, 490, color=(90, 220, 235)),
+        Hazard(1260, 490, color=(165, 130, 255)),
+    ]
     info = {
         "name": "Moonlit Cave",
         "number": 2,
@@ -65,6 +71,7 @@ def build_stage_two():
     return {
         "platforms": platforms,
         "coins": coins,
+        "hazards": hazards,
         "enemies": enemies,
         "info": info,
     }
@@ -91,6 +98,10 @@ def build_stage_three():
         Enemy(520, 460, 470, 620),
         Enemy(850, 460, 820, 1080),
     ]
+    hazards = [
+        Hazard(760, 490, color=(245, 105, 90)),
+        Hazard(1265, 490, color=(255, 165, 85)),
+    ]
     info = {
         "name": "Sunset Castle",
         "number": 3,
@@ -99,6 +110,7 @@ def build_stage_three():
     return {
         "platforms": platforms,
         "coins": coins,
+        "hazards": hazards,
         "enemies": enemies,
         "info": info,
     }
@@ -126,6 +138,10 @@ def build_stage_four():
         Enemy(500, 460, 450, 590),
         Enemy(1020, 460, 960, 1080),
     ]
+    hazards = [
+        Hazard(760, 490, color=(135, 225, 255)),
+        Hazard(1260, 490, color=(195, 245, 255)),
+    ]
     info = {
         "name": "Frostfall Peaks",
         "number": 4,
@@ -135,6 +151,7 @@ def build_stage_four():
         "platforms": platforms,
         "coins": coins,
         "powerups": powerups,
+        "hazards": hazards,
         "enemies": enemies,
         "info": info,
     }
@@ -162,6 +179,10 @@ def build_stage_five():
         Enemy(520, 460, 470, 650),
         Boss(960, 442, 900, 1220),
     ]
+    hazards = [
+        Hazard(760, 490, color=(165, 115, 255)),
+        Hazard(1260, 490, color=(245, 205, 105)),
+    ]
     info = {
         "name": "Skyforge Citadel",
         "number": 5,
@@ -171,6 +192,7 @@ def build_stage_five():
         "platforms": platforms,
         "coins": coins,
         "powerups": powerups,
+        "hazards": hazards,
         "enemies": enemies,
         "info": info,
     }

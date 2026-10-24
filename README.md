@@ -2,7 +2,7 @@
 
 JumpByte is an original 2D platformer built with Python and Pygame. Play as a rat, explore five themed worlds, collect coins, use speed boosts, stomp enemy cats, and defeat the final boss.
 
-The game uses original Pygame-drawn characters and scenery with procedurally generated sound effects. It does not use Mario characters, names, sprites, or sounds.
+The game code, level layouts, scenery, effects, and sound effects are made for JumpByte. Rat and cat animations are loaded from the sprite assets in `assets/characters/`. The game does not use Mario characters, names, sprites, or sounds.
 
 ## Features
 
@@ -11,10 +11,12 @@ The game uses original Pygame-drawn characters and scenery with procedurally gen
 - Cat enemies that patrol and fire projectiles
 - Stomping attacks, including a health-based final boss with an enraged phase
 - Coins required to unlock each world’s exit
+- Points for coins, enemies, checkpoints, and completing worlds; best score saves locally
+- Themed floor hazards that must be jumped over
 - Speed-boost power-ups
 - Mid-world checkpoints, lives, respawn, game-over, and restart
 - Original scenery, platform details, animated characters, and visual effects
-- Generated sound effects for collecting coins, jumping, stomping, and taking damage
+- Generated sound effects for coins, jumps, power-ups, checkpoints, stomps, and damage
 - `M` key to mute or unmute sound effects
 - Start, pause, game-over, and victory screens
 
@@ -70,11 +72,14 @@ python main.py
 | `player.py` | Player movement, jumping, and animation |
 | `enemy.py` | Cat enemies, projectiles, and boss |
 | `objects.py` | Platforms, coins, and power-ups |
+| `sprites.py` | Loads, aligns, scales, and draws character animation frames |
+| `effects.py` | Particle bursts for pickups, jumps, damage, and stomps |
 | `levels.py` | Layouts and data for the five worlds |
 | `ui.py` | Start screen, HUD, pause, game-over, and win screens |
 | `sound_effects.py` | Generated sound effects and mute control |
+| `save_data.py` | Loads and saves the local best score |
 | `settings.py` | Shared game settings |
-| `workload.py` | Team task and workload reference |
+| `workload.py` | Suggested module map for viva preparation |
 
 ## Python concepts used
 
@@ -82,4 +87,4 @@ The project uses variables, conditionals, loops, functions, modules, lists, tupl
 
 ## Project note
 
-This is an educational, AI-assisted project. The project leader integrated and tested the game code. Team members should describe their actual contributions and explain only the modules they understand.
+This is an educational, AI-assisted project. This is an educational, AI-assisted project. The viva topic map is a study guide, not a record of authorship; describe actual contributions honestly and explain the modules you understand.

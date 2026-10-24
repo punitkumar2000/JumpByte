@@ -1,6 +1,9 @@
 """The player character, movement, jumping, and platform collisions."""
 
+import math
+
 import pygame
+from sprites import draw_frame, load_frames
 
 from settings import (
     GRAVITY,
@@ -18,6 +21,7 @@ class Player:
         self.on_ground = False
         self.speed_boost_timer = 0
         self.is_moving = False
+        self.facing_right = True
 
     def update(self, keys, platforms):
         # Save the old position so we can tell which side hit a platform.
@@ -33,6 +37,9 @@ class Player:
             move_x -= move_speed
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             move_x += move_speed
+
+        if move_x:
+            self.facing_right = move_x > 0
 
         self.rect.x += move_x
 
@@ -77,53 +84,59 @@ class Player:
                 self.rect.top = platform.rect.bottom
                 self.velocity_y = 0
 
+        # Gravity is fractional, so int(0.5) is zero every other frame.
+        # Check for a platform directly under the feet as well as overlap;
+        # this keeps on_ground stable while standing still.
+        if move_y >= 0:
+            for platform in platforms:
+                supported = (
+                    self.rect.bottom == platform.rect.top
+                    and self.rect.right > platform.rect.left
+                    and self.rect.left < platform.rect.right
+                )
+                if supported:
+                    self.velocity_y = 0
+                    self.on_ground = True
+                    break
+
         # If the player falls off the level, return them to the start.
         if self.rect.top > SCREEN_HEIGHT:
             self.rect.topleft = (60, 400)
             self.velocity_y = 0
             self.on_ground = False
 
-    def draw(self, surface):
-        x = self.rect.x
-        y = self.rect.y
-
-        # Tail
-        pygame.draw.lines(
-            surface, (145, 115, 95), False,
-            [(x + 9, y + 33), (x + 2, y + 37), (x + 1, y + 32)],
-            3,
-        )
-
-        # Body and animated feet
-        pygame.draw.ellipse(surface, (155, 145, 130), (x + 7, y + 20, 23, 20))
-        pygame.draw.ellipse(surface, (205, 190, 170), (x + 12, y + 25, 15, 11))
-
-        moving = getattr(self, "is_moving", False)
-        if moving:
-            step = (pygame.time.get_ticks() // 120) % 2
-            left_foot_y = y + 38 + (step * 2)
-            right_foot_y = y + 38 + ((1 - step) * 2)
+    def draw(self, surface, hit_cooldown=0):
+        if not self.on_ground:
+            animation = "jump"
+            frame_index = 2
+        elif self.is_moving:
+            animation = "run"
+            # Slower frame changes plus a shared frame pivot prevent the
+            # generated poses from looking like they are vibrating.
+            frame_index = (pygame.time.get_ticks() // 165) % 4
         else:
-            left_foot_y = right_foot_y = y + 38
+            animation = "idle"
+            frame_index = 0
 
-        pygame.draw.ellipse(surface, (90, 80, 75), (x + 6, left_foot_y, 11, 7))
-        pygame.draw.ellipse(surface, (90, 80, 75), (x + 19, right_foot_y, 11, 7))
+        frame = load_frames("rat", animation)[frame_index]
 
-        # Head and ears
-        pygame.draw.circle(surface, (155, 145, 130), (x + 12, y + 10), 7)
-        pygame.draw.circle(surface, (155, 145, 130), (x + 24, y + 10), 7)
-        pygame.draw.circle(surface, (215, 155, 155), (x + 12, y + 10), 4)
-        pygame.draw.circle(surface, (215, 155, 155), (x + 24, y + 10), 4)
-        pygame.draw.ellipse(surface, (175, 165, 150), (x + 7, y + 6, 23, 20))
+        if hit_cooldown > 0:
+            flash = (math.sin(pygame.time.get_ticks() / 55) + 1) / 2
+            hurt_glow = pygame.Rect(0, 0, 74, 70)
+            hurt_glow.midbottom = self.rect.midbottom
+            pygame.draw.ellipse(
+                surface,
+                (255, 85, 105, 85 + round(flash * 80)),
+                hurt_glow,
+                3,
+            )
 
-        # Face
-        pygame.draw.ellipse(surface, (225, 210, 190), (x + 10, y + 14, 18, 10))
-        pygame.draw.circle(surface, (35, 45, 60), (x + 15, y + 13), 2)
-        pygame.draw.circle(surface, (35, 45, 60), (x + 23, y + 13), 2)
-        pygame.draw.circle(surface, (205, 110, 125), (x + 19, y + 18), 2)
+        # A pulsing cyan ring makes the temporary speed power-up visible
+        # while keeping the character art itself clear.
+        if self.speed_boost_timer > 0:
+            pulse = (math.sin(pygame.time.get_ticks() / 90) + 1) / 2
+            aura = pygame.Rect(0, 0, 70 + round(pulse * 8), 68 + round(pulse * 6))
+            aura.midbottom = self.rect.midbottom
+            pygame.draw.ellipse(surface, (100, 225, 255, 125), aura, 2)
 
-        # Whiskers
-        pygame.draw.line(surface, (75, 70, 65), (x + 13, y + 19), (x + 2, y + 17), 1)
-        pygame.draw.line(surface, (75, 70, 65), (x + 13, y + 21), (x + 2, y + 23), 1)
-        pygame.draw.line(surface, (75, 70, 65), (x + 25, y + 19), (x + 33, y + 17), 1)
-        pygame.draw.line(surface, (75, 70, 65), (x + 25, y + 21), (x + 33, y + 23), 1)
+        draw_frame(surface, frame, self.rect, 64, self.facing_right)
