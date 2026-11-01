@@ -63,30 +63,46 @@ class Coin:
                 2,
             )
 class PowerUp:
-    def __init__(self, x, y):
+    def __init__(self, x, y, kind="speed"):
         self.rect = pygame.Rect(x, y, 24, 24)
         self.collected = False
+        self.kind = kind
 
     def draw(self, surface):
-        if not self.collected:
-            time = pygame.time.get_ticks() / 1000
-            bob = round(math.sin(time * 3.5 + self.rect.x) * 4)
-            center = (self.rect.centerx, self.rect.centery + bob)
-            radius = 14 + round((math.sin(time * 4) + 1) * 1.5)
-            pygame.draw.circle(surface, (255, 240, 115), center, radius + 6, 2)
-            pygame.draw.circle(surface, (250, 210, 55), center, radius)
-            pygame.draw.polygon(
-                surface,
-                (85, 65, 35),
-                [
-                    (center[0] + 3, center[1] - 10),
-                    (center[0] - 4, center[1] + 1),
-                    (center[0] + 1, center[1] + 1),
-                    (center[0] - 2, center[1] + 10),
-                    (center[0] + 6, center[1] - 2),
-                    (center[0] + 1, center[1] - 2),
-                ],
+        if self.collected:
+            return
+
+        time = pygame.time.get_ticks() / 1000
+        bob = round(math.sin(time * 3.5 + self.rect.x) * 4)
+        center = (self.rect.centerx, self.rect.centery + bob)
+        radius = 14 + round((math.sin(time * 4) + 1) * 1.5)
+
+        if self.kind == "bullet":
+            pygame.draw.circle(
+                surface, (100, 205, 255), center, radius + 6, 2
             )
+            pygame.draw.circle(surface, (65, 155, 235), center, radius)
+            pygame.draw.circle(
+                surface, (240, 250, 255), center, 5
+            )
+            return
+
+        pygame.draw.circle(
+            surface, (255, 240, 115), center, radius + 6, 2
+        )
+        pygame.draw.circle(surface, (250, 210, 55), center, radius)
+        pygame.draw.polygon(
+            surface,
+            (85, 65, 35),
+            [
+                (center[0] + 3, center[1] - 10),
+                (center[0] - 4, center[1] + 1),
+                (center[0] + 1, center[1] + 1),
+                (center[0] - 2, center[1] + 10),
+                (center[0] + 6, center[1] - 2),
+                (center[0] + 1, center[1] - 2),
+            ],
+        )
 
 
 class Hazard:
@@ -119,3 +135,88 @@ class Hazard:
                 (tip_x - 3, self.rect.top + 9),
                 1,
             )
+class MovingPlatform:
+    """Moves vertically between two points and carries the player."""
+
+    def __init__(self, x, y, width, height, top_y, bottom_y, speed=1):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.top_y = top_y
+        self.bottom_y = bottom_y
+        self.speed = speed
+        self.direction = 1
+        self.previous_y = y
+
+    def update(self):
+        self.previous_y = self.rect.y
+        self.rect.y += self.speed * self.direction
+
+        if self.rect.top <= self.top_y:
+            self.rect.top = self.top_y
+            self.direction = 1
+        elif self.rect.bottom >= self.bottom_y:
+            self.rect.bottom = self.bottom_y
+            self.direction = -1
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, (95, 190, 210), self.rect, border_radius=8)
+        pygame.draw.rect(
+            surface, (205, 245, 245),
+            (self.rect.x, self.rect.y, self.rect.width, 6),
+            border_radius=4,
+        )
+
+class CheeseDrop:
+    """A small bonus pickup that bounces out when an enemy is defeated."""
+
+    def __init__(self, x, y, direction):
+        self.rect = pygame.Rect(x, y, 14, 12)
+        self.velocity_x = direction * 2.5
+        self.velocity_y = -4
+        self.gravity = 0.3
+        self.floor_y = 490
+        self.lifetime = 600
+        self.collected = False
+
+    def update(self):
+        self.lifetime -= 1
+        self.rect.x += int(self.velocity_x)
+        self.velocity_y += self.gravity
+        self.rect.y += int(self.velocity_y)
+
+        if self.rect.bottom >= self.floor_y:
+            self.rect.bottom = self.floor_y
+            self.velocity_y = 0
+            self.velocity_x *= 0.85
+
+    def draw(self, surface):
+        if self.collected:
+            return
+
+        points = [
+            (self.rect.centerx, self.rect.top),
+            (self.rect.right, self.rect.centery),
+            (self.rect.centerx, self.rect.bottom),
+            (self.rect.left, self.rect.centery),
+        ]
+        pygame.draw.polygon(surface, (255, 220, 100), points)
+        pygame.draw.circle(
+            surface, (255, 245, 190),
+            (self.rect.centerx - 2, self.rect.centery - 2), 2,
+        )
+
+class PlayerShot:
+    def __init__(self, x, y, direction):
+        self.rect = pygame.Rect(x, y, 18, 10)
+        self.direction = direction
+        self.speed = 10
+
+    def update(self):
+        self.rect.x += self.speed * self.direction
+
+    def draw(self, surface):
+        pygame.draw.line(
+            surface, (100, 205, 255),
+            (self.rect.centerx - self.direction * 12, self.rect.centery),
+            self.rect.center, 5,
+        )
+        pygame.draw.ellipse(surface, (225, 250, 255), self.rect)

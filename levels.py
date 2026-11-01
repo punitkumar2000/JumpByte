@@ -1,7 +1,7 @@
 """Layouts for all five JumpByte worlds."""
 
 from enemy import Boss, Enemy
-from objects import Coin, Hazard, Platform, PowerUp
+from objects import Coin, Hazard, MovingPlatform, Platform, PowerUp
 
 
 def build_stage_one():
@@ -12,6 +12,17 @@ def build_stage_one():
         Platform(700, 405, 170),
         Platform(920, 380, 150),
         Platform(1170, 410, 170),
+    ]
+    moving_platforms = [
+        MovingPlatform(
+            x=1080,
+            y=340,
+            width=90,
+            height=18,
+            top_y=285,
+            bottom_y=395,
+            speed=1,
+        )
     ]
     coins = [
         Coin(x, y)
@@ -30,6 +41,7 @@ def build_stage_one():
     }
     return {
         "platforms": platforms,
+        "moving_platforms": moving_platforms,
         "coins": coins,
         "powerups": powerups,
         "hazards": hazards,
@@ -59,6 +71,7 @@ def build_stage_two():
         Enemy(520, 460, 470, 590),
         Enemy(1030, 460, 970, 1080),
     ]
+    powerups = [PowerUp(660, 370, kind="bullet")]
     hazards = [
         Hazard(770, 490, color=(90, 220, 235)),
         Hazard(1260, 490, color=(165, 130, 255)),
@@ -70,6 +83,7 @@ def build_stage_two():
     }
     return {
         "platforms": platforms,
+        "powerups": powerups,
         "coins": coins,
         "hazards": hazards,
         "enemies": enemies,

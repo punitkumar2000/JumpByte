@@ -11,10 +11,12 @@ from levels import (
     build_stage_four,
     build_stage_five,
 )
+from objects import CheeseDrop, PlayerShot
 from player import Player
 from effects import ParticleSystem
 from settings import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_TITLE
 from ui import UI
+from python_concepts import PYTHON_LESSONS
 from sound_effects import SoundEffects
 from save_data import load_best_score, save_best_score
 
@@ -43,10 +45,18 @@ class Game:
         self.player = Player(60, 400)
         self.respawn_position = (60, 400)
         self.bullets = []
+        self.player_shots = []
+        self.bullet_power_timer = 0.0
+        self.shot_cooldown = 0.0
+        self.cheese_drops = []
         self.stomp_effect_timer = 0
         self.stomp_effect_pos = (0, 0)
         self.player_lives = 3
         self.score = 0
+        self.python_coach_enabled = True
+        self.python_tip = None
+        self.python_tip_timer = 0.0
+        self.shown_python_tips = set()
         self.hit_cooldown = 0
         self.checkpoint_message_timer = 0.0
         self.game_over = False
@@ -65,6 +75,25 @@ class Game:
             self.best_score = self.score
             save_best_score(self.best_score)
 
+    def drop_cheese(self, enemy):
+        for direction in (-2, -1, 1, 2):
+            drop = CheeseDrop(
+                enemy.rect.centerx - 7,
+                enemy.rect.top,
+                direction,
+            )
+            self.cheese_drops.append(drop)
+
+    def show_python_tip(self, lesson_name):
+        """Show each Python lesson only once during this playthrough."""
+        if (
+            self.python_coach_enabled
+            and lesson_name not in self.shown_python_tips
+        ):
+            self.shown_python_tips.add(lesson_name)
+            self.python_tip = PYTHON_LESSONS[lesson_name]
+            self.python_tip_timer = 3.5
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -73,6 +102,7 @@ class Game:
                 if event.key == pygame.K_RETURN:
                     self.started = True
                     self.stage_intro_timer = 1.8
+                    self.show_python_tip("strings")
                 elif (
                     event.key == pygame.K_p
                     and self.started
@@ -82,6 +112,33 @@ class Game:
                     self.paused = not self.paused
                 elif event.key == pygame.K_m and self.started:
                     self.sounds.toggle_mute()
+                elif event.key == pygame.K_t and self.started:
+                    self.python_coach_enabled = not self.python_coach_enabled
+                    if self.python_coach_enabled:
+                        self.show_python_tip("strings")
+                    else:
+                        self.python_tip = None
+                        self.python_tip_timer = 0.0
+                elif (
+                    event.key == pygame.K_f
+                    and self.started
+                    and not self.paused
+                    and not self.game_over
+                    and not self.game_won
+                    and self.bullet_power_timer > 0
+                    and self.shot_cooldown <= 0
+                ):
+                    direction = 1 if self.player.facing_right else -1
+                    shot_x = (
+                        self.player.rect.right
+                        if direction > 0
+                        else self.player.rect.left - 18
+                    )
+                    self.player_shots.append(
+                        PlayerShot(shot_x, self.player.rect.centery, direction)
+                    )
+                    self.sounds.play_shoot()
+                    self.shot_cooldown = 0.3
                 elif event.key == pygame.K_r and (
                     self.game_over or self.game_won
                 ):
@@ -142,6 +199,7 @@ class Game:
             return
 
         self.stage_intro_timer = 1.8
+        self.show_python_tip("dictionaries")
         self.prepare_background()
         self.player = Player(60, 400)
         self.respawn_position = (60, 400)
@@ -161,9 +219,14 @@ class Game:
             return
 
         self.stage_intro_timer = max(0.0, self.stage_intro_timer - dt)
+        self.bullet_power_timer = max(0.0, self.bullet_power_timer - dt)
+        self.shot_cooldown = max(0.0, self.shot_cooldown - dt)
         self.checkpoint_message_timer = max(
             0.0, self.checkpoint_message_timer - dt
         )
+        self.python_tip_timer = max(0.0, self.python_tip_timer - dt)
+        if self.python_tip_timer == 0:
+            self.python_tip = None
 
         if self.stomp_effect_timer > 0:
             self.stomp_effect_timer -= 1
@@ -187,7 +250,24 @@ class Game:
 
         was_airborne = not self.player.on_ground
         previous_vertical_speed = self.player.velocity_y
-        self.player.update(keys, self.stage["platforms"])
+        moving_platforms = self.stage.get("moving_platforms", [])
+
+        # Lift par khade player ko lift ke saath le jao.
+        for platform in moving_platforms:
+            standing_on_lift = (
+                self.player.rect.bottom == platform.rect.top
+                and self.player.rect.right > platform.rect.left
+                and self.player.rect.left < platform.rect.right
+            )
+
+            old_y = platform.rect.y
+            platform.update()
+
+            if standing_on_lift:
+                self.player.rect.y += platform.rect.y - old_y
+
+        all_platforms = self.stage["platforms"] + moving_platforms
+        self.player.update(keys, all_platforms)
         if was_airborne and self.player.on_ground and previous_vertical_speed > 0:
             landing_color = (225, 245, 255) if self.stage_number == 4 else (205, 190, 155)
             self.particles.burst(
@@ -214,6 +294,7 @@ class Game:
             self.add_score(200)
             self.particles.burst(800, 350, (115, 255, 160), 22, 150)
             self.sounds.play_checkpoint()
+            self.show_python_tip("tuples")
 
         if self.hit_cooldown > 0:
             self.hit_cooldown -= 1
@@ -241,12 +322,16 @@ class Game:
 
                     if getattr(enemy, "is_boss", False):
                         self.add_score(250)
+                        self.show_python_tip("inheritance")
                         enemy.health -= 1
                         if enemy.health <= 0:
                             self.add_score(500)
+                            self.drop_cheese(enemy)
                             self.stage["enemies"].remove(enemy)
                     else:
                         self.add_score(200)
+                        self.show_python_tip("classes")
+                        self.drop_cheese(enemy)
                         self.stage["enemies"].remove(enemy)
                 else:
                     self.lose_life()
@@ -262,9 +347,48 @@ class Game:
             if bullet.rect.right > 0 and bullet.rect.left < 1600
         ]
 
+        for shot in self.player_shots[:]:
+            shot.update()
+            hit_enemy = None
+
+            for enemy in self.stage["enemies"][:]:
+                if shot.rect.colliderect(enemy.rect):
+                    hit_enemy = enemy
+                    break
+
+            if hit_enemy is not None:
+                self.player_shots.remove(shot)
+
+                if getattr(hit_enemy, "is_boss", False):
+                    hit_enemy.health -= 1
+                    self.add_score(100)
+                    if hit_enemy.health <= 0:
+                        self.add_score(500)
+                        self.drop_cheese(hit_enemy)
+                        self.stage["enemies"].remove(hit_enemy)
+                else:
+                    self.add_score(150)
+                    self.drop_cheese(hit_enemy)
+                    self.stage["enemies"].remove(hit_enemy)
+
+            elif shot.rect.right < 0 or shot.rect.left > 1600:
+                self.player_shots.remove(shot)
+
+        for drop in self.cheese_drops[:]:
+            drop.update()
+
+            if self.player.rect.colliderect(drop.rect):
+                self.cheese_drops.remove(drop)
+                self.add_score(25)
+                continue
+
+            if drop.lifetime <= 0:
+                self.cheese_drops.remove(drop)
+
         for coin in self.stage["coins"]:
             if not coin.collected and self.player.rect.colliderect(coin.rect):
                 coin.collected = True
+                self.show_python_tip("lists")
                 self.add_score(100)
                 self.sounds.play_coin()
                 self.particles.burst(*coin.rect.center, (255, 220, 85), 14, 165)
@@ -272,7 +396,11 @@ class Game:
         for powerup in self.stage.get("powerups", []):
             if not powerup.collected and self.player.rect.colliderect(powerup.rect):
                 powerup.collected = True
-                self.player.speed_boost_timer = 300
+                self.show_python_tip("conditionals")
+                if powerup.kind == "bullet":
+                    self.bullet_power_timer = 5.0
+                else:
+                    self.player.speed_boost_timer = 300
                 self.add_score(50)
                 self.sounds.play_powerup()
                 self.particles.burst(
@@ -580,6 +708,9 @@ class Game:
             for platform in self.stage["platforms"]:
                 platform.draw(world)
 
+            for platform in self.stage.get("moving_platforms", []):
+                platform.draw(world)
+
             for hazard in self.stage.get("hazards", []):
                 hazard.draw(world)
 
@@ -601,13 +732,16 @@ class Game:
             for coin in self.stage["coins"]:
                 coin.draw(world)
 
+            for drop in self.cheese_drops:
+                drop.draw(world)
+
             for powerup in self.stage.get("powerups", []):
                 powerup.draw(world)
 
             for enemy in self.stage["enemies"]:
                 enemy.draw(world)
 
-            if self.stomp_effect_timer > 0:
+            if self.stage_intro_timer > 0 and not self.python_tip:
                 effect_age = 18 - self.stomp_effect_timer
                 radius = 8 + effect_age * 2
                 pygame.draw.circle(
@@ -620,6 +754,9 @@ class Game:
 
             for bullet in self.bullets:
                 bullet.draw(world)
+
+            for shot in self.player_shots:
+                shot.draw(world)
 
             boss_alive = any(
                 getattr(enemy, "is_boss", False)
@@ -651,6 +788,7 @@ class Game:
                 stage_number=self.stage_number,
                 sound_muted=self.sounds.muted,
                 score=self.score,
+                bullet_timer=self.bullet_power_timer,
             )
 
             # Exit par coins baaki hon toh player ko reason dikhega.
@@ -691,6 +829,29 @@ class Game:
                     self.stage["info"]["name"],
                     self.stage_intro_timer,
                 )
+                    # Python tip code yahan
+            if (
+                self.started
+                and self.python_tip
+                and self.python_tip_timer > 0
+                and not self.game_over
+                and not self.game_won
+                and not self.paused
+            ):
+                self.ui.draw_python_tip(
+                    self.screen,
+                    self.python_tip,
+                    self.python_tip_timer,
+                )
+
+        if not self.started:
+            self.ui.draw_start(self.screen)
+        elif self.game_over:
+            self.ui.draw_game_over(self.screen, self.score, self.best_score)
+        elif self.game_won:
+            self.ui.draw_win(self.screen, self.score, self.best_score)
+        elif self.paused:
+            self.ui.draw_pause(self.screen)
 
         if not self.started:
             self.ui.draw_start(self.screen)

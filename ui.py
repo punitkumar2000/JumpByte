@@ -1,6 +1,8 @@
 """Polished title, HUD, pause, win, and game-over screens."""
 
 import pygame
+import math
+from pathlib import Path
 
 
 WHITE = (247, 250, 255)
@@ -15,6 +17,19 @@ class UI:
         self.font = pygame.font.Font(None, 26)
         self.title_font = pygame.font.Font(None, 76)
         self.subtitle_font = pygame.font.Font(None, 30)
+        asset_dir = Path(__file__).resolve().parent / "assets"
+
+        self.menu_background = pygame.image.load(
+            str(asset_dir / "menu_background.png")
+        ).convert()
+
+        self.game_over_background = pygame.image.load(
+            str(asset_dir / "game_over.png")
+        ).convert()
+
+        self.win_background = pygame.image.load(
+            str(asset_dir / "win_background.png")
+        ).convert()
 
     def _panel(self, surface, rect, color=(20, 28, 48, 205), radius=18):
         panel = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
@@ -29,6 +44,7 @@ class UI:
         self, surface, stage_name, coin_count, lives, boost_timer=0,
         total_coins=0, progress=0.0, stage_number=1, sound_muted=False,
         score=0,
+        bullet_timer=0.0,
     ):
         self._panel(surface, pygame.Rect(16, 12, surface.get_width() - 32, 68), radius=16)
 
@@ -87,6 +103,14 @@ class UI:
             boost = self.small_font.render(f"BOOST {seconds_left}s", True, MINT)
             surface.blit(boost, (790, 19))
 
+        if bullet_timer > 0:
+            fire_text = self.small_font.render(
+                f"FIRE POWER {bullet_timer:.0f}s",
+                True,
+                (120, 210, 255),
+            )
+            surface.blit(fire_text, (790, 62))
+
     def draw_banner(self, surface, text, center_y, alpha=220):
         """Draw a compact readable gameplay hint or checkpoint notice."""
         rendered = self.font.render(text, True, WHITE)
@@ -126,26 +150,123 @@ class UI:
         self._panel(surface, rect, color=(22, 31, 55, 238), radius=24)
         return rect
 
+
+    def _draw_animated_background(self, surface, image, phase=0):
+        width, height = surface.get_size()
+        image_width, image_height = image.get_size()
+
+        # Image ko screen bharne jitna bada karo, phir halka zoom animate karo.
+        zoom = 1.04 + 0.015 * math.sin(pygame.time.get_ticks() / 900 + phase)
+        scale = max(width / image_width, height / image_height) * zoom
+        new_size = (int(image_width * scale), int(image_height * scale))
+
+        background = pygame.transform.smoothscale(image, new_size)
+        x = (width - new_size[0]) // 2
+        y = (height - new_size[1]) // 2
+        surface.blit(background, (x, y))
+
+        # Text ko background par padhna aasaan banata hai.
+        shade = pygame.Surface((width, height), pygame.SRCALPHA)
+        shade.fill((10, 16, 32, 15))
+        surface.blit(shade, (0, 0))
+    
     def draw_start(self, surface):
-        rect = self._card(surface, 700, 300)
+        self._draw_animated_background(surface, self.menu_background)
+        rect = pygame.Rect(
+            (surface.get_width() - 700) // 2,
+            (surface.get_height() - 300) // 2,
+            700,
+            300,
+        )
         title = self.title_font.render("JUMPBYTE", True, WHITE)
         subtitle = self.subtitle_font.render("A little adventure with a big leap.", True, MINT)
         hint = self.font.render("PRESS ENTER TO PLAY", True, GOLD)
         controls = self.small_font.render(
-            "MOVE  A / D or arrows     •     JUMP  SPACE / W / ↑     •     PAUSE  P",
+            "MOVE A/D or arrows  •  JUMP SPACE/W  •  PAUSE P  •  FIRE F",
             True, (209, 219, 237),
         )
         objective = self.small_font.render(
-            "Explore five worlds • collect every coin • outsmart the cat",
-            True, (209, 219, 237),
+            "Collect the blue power-up to fire • Press T for Python Coach",
+            True,
+            (209, 219, 237),
         )
         for text, y in ((title, rect.y + 58), (subtitle, rect.y + 128),
                         (hint, rect.y + 194), (controls, rect.y + 240),
                         (objective, rect.y + 268)):
             surface.blit(text, text.get_rect(center=(surface.get_width() // 2, y)))
 
+    def draw_python_tip(self, surface, lesson, seconds_left):
+        """Show a small, temporary Python lesson near the top of the screen."""
+        width = min(surface.get_width() - 32, 660)
+        height = 82
+        rect = pygame.Rect(0, 0, width, height)
+        rect.midtop = (surface.get_width() // 2, 88)
+
+        self._panel(
+            surface,
+            rect,
+            color=(20, 31, 55, 238),
+            radius=16,
+        )
+        pygame.draw.rect(
+            surface,
+            (133, 245, 194),
+            (rect.x + 1, rect.y + 11, 4, height - 22),
+            border_radius=3,
+        )
+
+        title = self.small_font.render(
+            lesson["title"], True, (133, 245, 194)
+        )
+        surface.blit(title, (rect.x + 18, rect.y + 9))
+
+        words = lesson["message"].split()
+        lines = []
+        line = ""
+        max_text_width = width - 36
+
+        for word in words:
+            candidate = f"{line} {word}".strip()
+            if line and self.small_font.size(candidate)[0] > max_text_width:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+
+        if line:
+            lines.append(line)
+
+        for index, text in enumerate(lines[:2]):
+            rendered = self.small_font.render(
+                text, True, (245, 247, 255)
+            )
+            surface.blit(
+                rendered,
+                (rect.x + 18, rect.y + 34 + index * 18),
+            )
+
+        bar = pygame.Rect(rect.x + 18, rect.bottom - 6, width - 36, 2)
+        pygame.draw.rect(surface, (65, 75, 96), bar, border_radius=2)
+
+        fill = bar.copy()
+        fill.width = round(
+            bar.width * max(0.0, min(1.0, seconds_left / 3.5))
+        )
+        if fill.width:
+            pygame.draw.rect(
+                surface, (133, 245, 194), fill, border_radius=2
+            )
+
+        
+
     def draw_game_over(self, surface, score=0, best_score=0):
-        rect = self._card(surface, 500, 205)
+        self._draw_animated_background(surface, self.game_over_background, 1)
+        rect = pygame.Rect(
+            (surface.get_width() - 500) // 2,
+            (surface.get_height() - 205) // 2,
+            500,
+            205,
+        )
         title = self.title_font.render("Out of lives", True, WHITE)
         result = self.font.render(
             f"Score {score:,}   •   Best {best_score:,}", True, MINT
@@ -156,7 +277,13 @@ class UI:
         surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.y + 160)))
 
     def draw_win(self, surface, score=0, best_score=0):
-        rect = self._card(surface, 650, 220)
+        self._draw_animated_background(surface, self.win_background, 2)
+        rect = pygame.Rect(
+            (surface.get_width() - 650) // 2,
+            (surface.get_height() - 220) // 2,
+            650,
+            220,
+        )
         title = self.title_font.render("Adventure complete!", True, WHITE)
         result = self.font.render(
             f"Score {score:,}   •   Best {best_score:,}", True, MINT

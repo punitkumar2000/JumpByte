@@ -37,6 +37,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 | Space, Up arrow, or W | Jump |
 | P | Pause or resume |
 | M | Mute or unmute sound effects |
+| T | Turn Python Coach lessons on or off |
 | R | Restart after game over or winning |
 
 ## Setup and run

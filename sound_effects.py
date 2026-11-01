@@ -45,6 +45,12 @@ class SoundEffects:
                 duration=0.24,
                 volume=0.32,
             )
+            self.shoot_sound = self._make_tone(
+                start_frequency=1100,
+                end_frequency=420,
+                duration=0.08,
+                volume=0.22,
+            )
             self.checkpoint_sound = self._make_tone(
                 start_frequency=780,
                 end_frequency=1180,
@@ -94,6 +100,10 @@ class SoundEffects:
     def play_powerup(self):
         if self.enabled and not self.muted:
             self.powerup_sound.play()
+
+    def play_shoot(self):
+        if self.enabled and not self.muted:
+            self.shoot_sound.play()
 
     def play_checkpoint(self):
         if self.enabled and not self.muted:
