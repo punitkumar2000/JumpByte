@@ -19,6 +19,9 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - Generated sound effects for coins, jumps, power-ups, checkpoints, stomps, and damage
 - `M` key to mute or unmute sound effects
 - Start, pause, game-over, and victory screens
+- A vertical moving platform in Green Meadow that carries the player
+- Cheese bonus pickups that bounce out when cats or the boss are defeated
+- A blue fire power-up in Moonlit Cave; press `F` to shoot while it is active
 
 ## Worlds and objectives
 
@@ -37,6 +40,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 | Space, Up arrow, or W | Jump |
 | P | Pause or resume |
 | M | Mute or unmute sound effects |
+| F | Fire while the blue power-up is active |
 | T | Turn Python Coach lessons on or off |
 | R | Restart after game over or winning |
 
@@ -72,7 +76,7 @@ python main.py
 | `game.py` | Game loop, events, stages, collisions, and drawing |
 | `player.py` | Player movement, jumping, and animation |
 | `enemy.py` | Cat enemies, projectiles, and boss |
-| `objects.py` | Platforms, coins, and power-ups |
+| `objects.py` | Platforms, moving platforms, coins, power-ups, cheese drops, and hazards |
 | `sprites.py` | Loads, aligns, scales, and draws character animation frames |
 | `effects.py` | Particle bursts for pickups, jumps, damage, and stomps |
 | `levels.py` | Layouts and data for the five worlds |
@@ -88,4 +92,4 @@ The project uses variables, conditionals, loops, functions, modules, lists, tupl
 
 ## Project note
 
-This is an educational, AI-assisted project. This is an educational, AI-assisted project. The viva topic map is a study guide, not a record of authorship; describe actual contributions honestly and explain the modules you understand.
+This is an educational, AI-assisted project. The viva topic map is a study guide; explain the parts you understand and describe each team member's contribution accurately.

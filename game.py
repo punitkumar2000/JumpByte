@@ -853,14 +853,6 @@ class Game:
         elif self.paused:
             self.ui.draw_pause(self.screen)
 
-        if not self.started:
-            self.ui.draw_start(self.screen)
-        elif self.game_over:
-            self.ui.draw_game_over(self.screen, self.score, self.best_score)
-        elif self.game_won:
-            self.ui.draw_win(self.screen, self.score, self.best_score)
-        elif self.paused:
-            self.ui.draw_pause(self.screen)
 
         pygame.display.flip()
 
