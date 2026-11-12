@@ -19,6 +19,7 @@ from ui import UI
 from python_concepts import PYTHON_LESSONS
 from sound_effects import SoundEffects
 from save_data import load_best_score, save_best_score
+from python_challenges import PYTHON_CHALLENGES
 
 
 class Game:
@@ -63,6 +64,9 @@ class Game:
         self.game_won = False
         self.paused = False
         self.exit_locked = False
+        self.challenge_open = False
+        self.challenge_solved = False
+        self.challenge_feedback = ""
         self.camera_x = 0
         self.particles = ParticleSystem()
         self.camera_shake_timer = 0
@@ -93,6 +97,36 @@ class Game:
             self.shown_python_tips.add(lesson_name)
             self.python_tip = PYTHON_LESSONS[lesson_name]
             self.python_tip_timer = 3.5
+
+    def open_python_challenge(self):
+        all_coins_collected = all(
+            coin.collected for coin in self.stage["coins"]
+        )
+        boss_alive = any(
+            getattr(enemy, "is_boss", False)
+            for enemy in self.stage["enemies"]
+        )
+        near_exit = self.player.rect.right >= 1490
+
+        if (
+            near_exit
+            and all_coins_collected
+            and not boss_alive
+            and not self.challenge_solved
+        ):
+            self.challenge_feedback = ""
+            self.challenge_open = True
+
+    def answer_python_challenge(self, choice_number):
+        challenge = PYTHON_CHALLENGES[self.stage_number]
+
+        if choice_number == challenge["answer"]:
+            self.challenge_solved = True
+            self.challenge_open = False
+            self.add_score(200)
+            self.sounds.play_powerup()
+        else:
+            self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -139,6 +173,15 @@ class Game:
                     )
                     self.sounds.play_shoot()
                     self.shot_cooldown = 0.3
+                elif event.key == pygame.K_e and self.started:
+                    self.open_python_challenge()
+                elif self.challenge_open and event.key in (
+                    pygame.K_1,
+                    pygame.K_2,
+                    pygame.K_3,
+                ):
+                    choice_number = event.key - pygame.K_0
+                    self.answer_python_challenge(choice_number)
                 elif event.key == pygame.K_r and (
                     self.game_over or self.game_won
                 ):
@@ -173,10 +216,17 @@ class Game:
         reached_exit = self.player.rect.right >= 1540
 
         self.exit_locked = reached_exit and (
-            not all_coins_collected or boss_alive
+            not all_coins_collected
+            or boss_alive
+            or not self.challenge_solved
         )
 
-        if not reached_exit or not all_coins_collected or boss_alive:
+        if (
+            not reached_exit
+            or not all_coins_collected
+            or boss_alive
+            or not self.challenge_solved
+        ):
             return
 
         self.add_score(500)
@@ -207,6 +257,9 @@ class Game:
         self.bullets.clear()
         self.stomp_effect_timer = 0
         self.exit_locked = False
+        self.challenge_open = False
+        self.challenge_solved = False
+        self.challenge_feedback = ""
         self.camera_x = 0
 
     def update(self, dt=1 / FPS):
@@ -215,6 +268,7 @@ class Game:
             or self.game_over
             or self.game_won
             or self.paused
+            or self.challenge_open
         ):
             return
 
@@ -803,8 +857,10 @@ class Game:
                     message_text = "Collect all coins and defeat the boss!"
                 elif boss_alive:
                     message_text = "Defeat the boss to unlock the exit!"
-                else:
+                elif coins_missing:
                     message_text = "Collect all coins to unlock the exit!"
+                else:
+                    message_text = "Press E at the flag for the Python challenge!"
 
                 self.ui.draw_banner(
                     self.screen, message_text, SCREEN_HEIGHT - 44
@@ -854,6 +910,12 @@ class Game:
             self.ui.draw_pause(self.screen)
 
 
+        if self.challenge_open:
+            self.ui.draw_python_challenge(
+                self.screen,
+                PYTHON_CHALLENGES[self.stage_number],
+                self.challenge_feedback,
+            )
         pygame.display.flip()
 
     def run(self):
