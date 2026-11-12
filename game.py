@@ -1,6 +1,7 @@
 """Main game loop and integration for players, stages, enemies, and projectiles."""
 
 import math
+import random
 
 import pygame
 
@@ -26,7 +27,10 @@ class Game:
     def __init__(self):
         pygame.init()
         self.sounds = SoundEffects()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode(
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+            pygame.SCALED | pygame.RESIZABLE,
+        )
         self.world_surface = pygame.Surface(
             (1600, SCREEN_HEIGHT), pygame.SRCALPHA
         )
@@ -39,6 +43,9 @@ class Game:
         self.show_world_map = False
         self.camera_x = 0
         self.stage_intro_timer = 0.0
+        self.challenge_history = {
+            world_number: set() for world_number in PYTHON_CHALLENGES
+        }
         self.reset_stage()
 
     def reset_stage(self):
@@ -68,6 +75,7 @@ class Game:
         self.challenge_open = False
         self.challenge_solved = False
         self.challenge_feedback = ""
+        self.active_challenge = None
         self.camera_x = 0
         self.particles = ParticleSystem()
         self.camera_shake_timer = 0
@@ -100,6 +108,9 @@ class Game:
             self.python_tip_timer = 3.5
 
     def open_python_challenge(self):
+        if self.challenge_open:
+            return
+
         all_coins_collected = all(
             coin.collected for coin in self.stage["coins"]
         )
@@ -115,17 +126,36 @@ class Game:
             and not boss_alive
             and not self.challenge_solved
         ):
+            question_pool = PYTHON_CHALLENGES[self.stage_number]
+            used_questions = self.challenge_history[self.stage_number]
+            available_questions = [
+                index
+                for index in range(len(question_pool))
+                if index not in used_questions
+            ]
+
+            # Deal every question once before reshuffling the world's pool.
+            if not available_questions:
+                used_questions.clear()
+                available_questions = list(range(len(question_pool)))
+
+            question_index = random.choice(available_questions)
+            used_questions.add(question_index)
+            self.active_challenge = question_pool[question_index]
             self.challenge_feedback = ""
             self.challenge_open = True
 
     def answer_python_challenge(self, choice_number):
-        challenge = PYTHON_CHALLENGES[self.stage_number]
+        challenge = self.active_challenge
+        if challenge is None:
+            return
 
         if choice_number == challenge["answer"]:
             self.challenge_solved = True
             self.challenge_open = False
             self.add_score(200)
             self.sounds.play_powerup()
+            self.active_challenge = None
         else:
             self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
 
@@ -134,7 +164,9 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
+                if event.key == pygame.K_F11:
+                    pygame.display.toggle_fullscreen()
+                elif event.key == pygame.K_RETURN:
                     if not self.started and not self.show_world_map:
                         self.show_world_map = True
                     elif self.show_world_map:
@@ -149,6 +181,7 @@ class Game:
                     and self.started
                     and not self.game_over
                     and not self.game_won
+                    and not self.challenge_open
                 ):
                     self.paused = not self.paused
                 elif event.key == pygame.K_m and self.started:
@@ -262,11 +295,19 @@ class Game:
         self.respawn_position = (60, 400)
         self.checkpoint_message_timer = 0.0
         self.bullets.clear()
+        self.player_shots.clear()
+        self.cheese_drops.clear()
+        self.bullet_power_timer = 0.0
+        self.shot_cooldown = 0.0
+        self.hit_cooldown = 0
         self.stomp_effect_timer = 0
+        self.camera_shake_timer = 0
+        self.particles = ParticleSystem()
         self.exit_locked = False
         self.challenge_open = False
         self.challenge_solved = False
         self.challenge_feedback = ""
+        self.active_challenge = None
         self.camera_x = 0
 
     def update(self, dt=1 / FPS):
@@ -892,7 +933,6 @@ class Game:
                     self.stage["info"]["name"],
                     self.stage_intro_timer,
                 )
-                    # Python tip code yahan
             if (
                 self.started
                 and self.python_tip
@@ -920,10 +960,10 @@ class Game:
             self.ui.draw_pause(self.screen)
 
 
-        if self.challenge_open:
+        if self.challenge_open and self.active_challenge is not None:
             self.ui.draw_python_challenge(
                 self.screen,
-                PYTHON_CHALLENGES[self.stage_number],
+                self.active_challenge,
                 self.challenge_feedback,
             )
         pygame.display.flip()

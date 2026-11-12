@@ -22,6 +22,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - A vertical moving platform in Green Meadow that carries the player
 - Cheese bonus pickups that bounce out when cats or the boss are defeated
 - A blue fire power-up in Moonlit Cave; press `F` to shoot while it is active
+- Random Python gate questions in every world; questions do not repeat until that world's pool has been used
 
 ## Worlds and objectives
 
@@ -35,14 +36,19 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 
 | Key | Action |
 | --- | --- |
-| Enter | Start the game |
+| Enter | Open the journey map, then start the game |
 | A / D or Left / Right arrows | Move |
 | Space, Up arrow, or W | Jump |
 | P | Pause or resume |
 | M | Mute or unmute sound effects |
 | F | Fire while the blue power-up is active |
+| E | Open the Python challenge near the exit after meeting its requirements |
+| 1 / 2 / 3 | Choose an answer in a Python challenge |
 | T | Turn Python Coach lessons on or off |
 | R | Restart after game over or winning |
+| F11 | Toggle fullscreen/windowed mode where the system sends F11 to the game |
+
+The game opens in a resizable window. On macOS, use the green window button for fullscreen; some Mac keyboards reserve `F11` for system controls.
 
 ## Setup and run
 
@@ -84,7 +90,10 @@ python main.py
 | `sound_effects.py` | Generated sound effects and mute control |
 | `save_data.py` | Loads and saves the local best score |
 | `settings.py` | Shared game settings |
+| `python_challenges.py` | Python questions and answer feedback for each world |
+| `python_concepts.py` | Short Python Coach explanations shown during play |
 | `workload.py` | Suggested module map for viva preparation |
+| `PRESENTATION_GUIDE.md` | Demo walkthrough and viva revision notes |
 
 ## Python concepts used
 
@@ -93,3 +102,5 @@ The project uses variables, conditionals, loops, functions, modules, lists, tupl
 ## Project note
 
 This is an educational, AI-assisted project. The viva topic map is a study guide; explain the parts you understand and describe each team member's contribution accurately.
+
+Before submission, add the source and license/credit for any downloaded character or background artwork to the project materials.

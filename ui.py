@@ -2,6 +2,7 @@
 
 import pygame
 import math
+from sprites import draw_frame, load_frames
 from pathlib import Path
 
 
@@ -17,6 +18,8 @@ class UI:
         self.font = pygame.font.Font(None, 26)
         self.title_font = pygame.font.Font(None, 76)
         self.subtitle_font = pygame.font.Font(None, 30)
+        self.menu_rat_frames = load_frames("rat", "idle")
+        self.menu_control_font = pygame.font.SysFont("Arial", 15, bold=True)
         asset_dir = Path(__file__).resolve().parent / "assets"
 
         self.menu_background = pygame.image.load(
@@ -88,6 +91,10 @@ class UI:
         controls = self.small_font.render(
             "A/D MOVE   SPACE JUMP   P PAUSE", True, WHITE
         )
+        if bullet_timer > 0:
+            controls = self.small_font.render(
+                f"FIRE: F  {bullet_timer:.0f}s", True, (150, 220, 255)
+            )
         surface.blit(controls, (680, 43))
 
         score_text = self.small_font.render(f"SCORE {score:06d}", True, GOLD)
@@ -96,20 +103,12 @@ class UI:
         sound_label = "SOUND OFF" if sound_muted else "SOUND ON"
         sound_color = (255, 165, 170) if sound_muted else MINT
         sound = self.small_font.render(sound_label, True, sound_color)
-        surface.blit(sound, (874, 19))
+        surface.blit(sound, (884, 19))
 
         if boost_timer > 0:
             seconds_left = (boost_timer + 59) // 60
             boost = self.small_font.render(f"BOOST {seconds_left}s", True, MINT)
-            surface.blit(boost, (790, 19))
-
-        if bullet_timer > 0:
-            fire_text = self.small_font.render(
-                f"FIRE POWER {bullet_timer:.0f}s",
-                True,
-                (120, 210, 255),
-            )
-            surface.blit(fire_text, (790, 62))
+            surface.blit(boost, (800, 19))
 
     def draw_banner(self, surface, text, center_y, alpha=220):
         """Draw a compact readable gameplay hint or checkpoint notice."""
@@ -250,31 +249,78 @@ class UI:
             hint,
             hint.get_rect(center=(surface.get_width() // 2, 430)),
         )
-    
+
     def draw_start(self, surface):
         self._draw_animated_background(surface, self.menu_background)
-        rect = pygame.Rect(
-            (surface.get_width() - 700) // 2,
-            (surface.get_height() - 300) // 2,
-            700,
-            300,
-        )
-        title = self.title_font.render("JUMPBYTE", True, WHITE)
-        subtitle = self.subtitle_font.render("A little adventure with a big leap.", True, MINT)
-        hint = self.font.render("PRESS ENTER TO PLAY", True, GOLD)
-        controls = self.small_font.render(
-            "MOVE A/D or arrows  •  JUMP SPACE/W  •  PAUSE P  •  FIRE F",
-            True, (209, 219, 237),
-        )
-        objective = self.small_font.render(
-            "Collect the blue power-up to fire • Press T for Python Coach",
+
+        # Small decorative heading
+        pygame.draw.line(surface, MINT, (88, 112), (140, 112), 4)
+        eyebrow = self.small_font.render(
+            "A PYTHON PLATFORM ADVENTURE",
             True,
-            (209, 219, 237),
+            MINT,
         )
-        for text, y in ((title, rect.y + 58), (subtitle, rect.y + 128),
-                        (hint, rect.y + 194), (controls, rect.y + 240),
-                        (objective, rect.y + 268)):
-            surface.blit(text, text.get_rect(center=(surface.get_width() // 2, y)))
+        surface.blit(eyebrow, (88, 126))
+
+        # Main title and subtitle
+        title = self.title_font.render("JUMPBYTE", True, (255, 224, 135))
+        surface.blit(title, (84, 160))
+
+        subtitle = self.subtitle_font.render(
+            "Small paws. Big adventure.",
+            True,
+            WHITE,
+        )
+        surface.blit(subtitle, (90, 236))
+
+        # Bright outline button, with no dark fill or shadow
+        button_rect = pygame.Rect(88, 294, 390, 54)
+        pygame.draw.rect(
+            surface,
+            MINT,
+            button_rect,
+            width=2,
+            border_radius=16,
+        )
+
+        pulse = 210 + round(
+            45 * (math.sin(pygame.time.get_ticks() / 320) + 1) / 2
+        )
+        button_text = self.font.render(
+            "PRESS ENTER TO EXPLORE",
+            True,
+            (255, 232, 160),
+        )
+        button_text.set_alpha(pulse)
+        surface.blit(
+            button_text,
+            button_text.get_rect(center=button_rect.center),
+        )
+
+        # Compact centered controls remain clear without competing with the rat.
+        label_font = self.menu_control_font
+        center_x = surface.get_width() // 2
+        labels = [
+            ("MOVE: A / D or arrows    JUMP: SPACE / W", 365),
+            ("PAUSE: P    FIRE: F after blue power-up", 395),
+            ("COINS • PYTHON GATES • REACH THE FLAG", 425),
+        ]
+
+        for message, y in labels:
+            text = label_font.render(message, True, (255, 246, 215))
+            shadow = label_font.render(message, True, (5, 12, 25))
+            shadow.set_alpha(175)
+            rect = text.get_rect(center=(center_x, y))
+            surface.blit(shadow, rect.move(1, 2))
+            surface.blit(text, rect)
+
+        frames = self.menu_rat_frames
+        frame_index = (pygame.time.get_ticks() // 350) % len(frames)
+        bob = round(math.sin(pygame.time.get_ticks() / 430) * 6)
+
+        rat_anchor = pygame.Rect(0, 0, 40, 80)
+        rat_anchor.midbottom = (785, 430 + bob)
+        draw_frame(surface, frames[frame_index], rat_anchor, 220, True)
 
     def draw_python_tip(self, surface, lesson, seconds_left):
         """Show a small, temporary Python lesson near the top of the screen."""
