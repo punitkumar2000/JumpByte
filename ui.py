@@ -169,6 +169,87 @@ class UI:
         shade = pygame.Surface((width, height), pygame.SRCALPHA)
         shade.fill((10, 16, 32, 15))
         surface.blit(shade, (0, 0))
+
+    def draw_world_map(self, surface):
+        self._draw_animated_background(surface, self.menu_background, 0.5)
+
+        title = self.subtitle_font.render("YOUR JOURNEY", True, WHITE)
+        subtitle = self.small_font.render(
+            "Collect every coin to travel through the five worlds",
+            True,
+            MINT,
+        )
+        surface.blit(title, title.get_rect(center=(surface.get_width() // 2, 72)))
+        surface.blit(subtitle, subtitle.get_rect(center=(surface.get_width() // 2, 108)))
+
+        worlds = [
+            ("01", "Green Meadow", "START HERE"),
+            ("02", "Moonlit Cave", "UP NEXT"),
+            ("03", "Sunset Castle", "UP NEXT"),
+            ("04", "Frostfall Peaks", "UP NEXT"),
+            ("05", "Skyforge Citadel", "FINAL WORLD"),
+        ]
+
+        card_width = 148
+        card_height = 150
+        gap = 24
+        total_width = 5 * card_width + 4 * gap
+        start_x = (surface.get_width() - total_width) // 2
+        card_y = 190
+        centers = []
+
+        for index in range(5):
+            x = start_x + index * (card_width + gap)
+            centers.append(x + card_width // 2)
+
+        for index in range(4):
+            pygame.draw.line(
+                surface,
+                (133, 245, 194),
+                (centers[index] + 46, card_y + 55),
+                (centers[index + 1] - 46, card_y + 55),
+                4,
+            )
+
+        for index, (number, name, status) in enumerate(worlds):
+            x = start_x + index * (card_width + gap)
+            rect = pygame.Rect(x, card_y, card_width, card_height)
+            active = index == 0
+
+            color = (22, 55, 68, 235) if active else (22, 31, 55, 220)
+            self._panel(surface, rect, color=color, radius=18)
+
+            circle_color = MINT if active else (120, 135, 160)
+            pygame.draw.circle(surface, circle_color, (centers[index], card_y + 55), 28)
+
+            number_text = self.font.render(number, True, INK)
+            surface.blit(
+                number_text,
+                number_text.get_rect(center=(centers[index], card_y + 55)),
+            )
+
+            name_text = self.small_font.render(name, True, WHITE)
+            surface.blit(
+                name_text,
+                name_text.get_rect(center=(centers[index], card_y + 105)),
+            )
+
+            status_color = GOLD if active else (180, 194, 218)
+            status_text = self.small_font.render(status, True, status_color)
+            surface.blit(
+                status_text,
+                status_text.get_rect(center=(centers[index], card_y + 130)),
+            )
+
+        hint = self.font.render(
+            "Press ENTER to begin  •  ESC to return",
+            True,
+            GOLD,
+        )
+        surface.blit(
+            hint,
+            hint.get_rect(center=(surface.get_width() // 2, 430)),
+        )
     
     def draw_start(self, surface):
         self._draw_animated_background(surface, self.menu_background)

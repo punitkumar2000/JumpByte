@@ -36,6 +36,7 @@ class Game:
         self.best_score = load_best_score()
         self.running = True
         self.started = False
+        self.show_world_map = False
         self.camera_x = 0
         self.stage_intro_timer = 0.0
         self.reset_stage()
@@ -134,9 +135,15 @@ class Game:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    self.started = True
-                    self.stage_intro_timer = 1.8
-                    self.show_python_tip("strings")
+                    if not self.started and not self.show_world_map:
+                        self.show_world_map = True
+                    elif self.show_world_map:
+                        self.show_world_map = False
+                        self.started = True
+                        self.stage_intro_timer = 1.8
+                        self.show_python_tip("strings")
+                elif event.key == pygame.K_ESCAPE and self.show_world_map:
+                    self.show_world_map = False
                 elif (
                     event.key == pygame.K_p
                     and self.started
@@ -901,7 +908,10 @@ class Game:
                 )
 
         if not self.started:
-            self.ui.draw_start(self.screen)
+            if self.show_world_map:
+                self.ui.draw_world_map(self.screen)
+            else:
+                self.ui.draw_start(self.screen)
         elif self.game_over:
             self.ui.draw_game_over(self.screen, self.score, self.best_score)
         elif self.game_won:
