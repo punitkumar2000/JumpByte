@@ -44,6 +44,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 | F | Fire while the blue power-up is active |
 | E | Open the Python challenge near the exit after meeting its requirements |
 | 1 / 2 / 3 | Choose an answer in a Python challenge |
+| Enter | Continue after reading a correct-answer explanation |
 | T | Turn Python Coach lessons on or off |
 | R | Restart after game over or winning |
 | F11 | Toggle fullscreen/windowed mode where the system sends F11 to the game |

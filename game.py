@@ -74,6 +74,7 @@ class Game:
         self.exit_locked = False
         self.challenge_open = False
         self.challenge_solved = False
+        self.challenge_answered = False
         self.challenge_feedback = ""
         self.active_challenge = None
         self.camera_x = 0
@@ -143,6 +144,7 @@ class Game:
             used_questions.add(question_index)
             self.active_challenge = question_pool[question_index]
             self.challenge_feedback = ""
+            self.challenge_answered = False
             self.challenge_open = True
 
     def answer_python_challenge(self, choice_number):
@@ -152,10 +154,9 @@ class Game:
 
         if choice_number == challenge["answer"]:
             self.challenge_solved = True
-            self.challenge_open = False
+            self.challenge_answered = True
             self.add_score(200)
             self.sounds.play_powerup()
-            self.active_challenge = None
         else:
             self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
 
@@ -164,6 +165,14 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
+                if self.challenge_open and self.challenge_answered:
+                    if event.key == pygame.K_RETURN:
+                        self.challenge_open = False
+                        self.challenge_answered = False
+                        self.challenge_feedback = ""
+                        self.active_challenge = None
+                    continue
+
                 if event.key == pygame.K_F11:
                     pygame.display.toggle_fullscreen()
                 elif event.key == pygame.K_RETURN:
@@ -306,6 +315,7 @@ class Game:
         self.exit_locked = False
         self.challenge_open = False
         self.challenge_solved = False
+        self.challenge_answered = False
         self.challenge_feedback = ""
         self.active_challenge = None
         self.camera_x = 0
@@ -965,6 +975,7 @@ class Game:
                 self.screen,
                 self.active_challenge,
                 self.challenge_feedback,
+                answered=self.challenge_answered,
             )
         pygame.display.flip()
 

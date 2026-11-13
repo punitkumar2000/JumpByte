@@ -5,7 +5,7 @@
 1. Start the game. Press **Enter** to open the journey map, then press **Enter** again to begin Green Meadow.
 2. Show movement and jumping with **A/D** or the arrow keys, and **Space/W/Up**. Collect a coin to show the score and Python Coach message.
 3. Show a power-up. The yellow power-up boosts speed; the blue power-up enables **F** to fire. **P** pauses the game and **M** mutes sound effects.
-4. Collect every coin in the world. At the exit, press **E** to open its Python challenge, then answer with **1**, **2**, or **3**. A wrong answer gives a hint; a correct answer allows progression.
+4. Collect every coin in the world. At the exit, press **E** to open its Python challenge, then answer with **1**, **2**, or **3**. A wrong answer gives a hint; a correct answer shows a short explanation. Press **Enter** to continue.
 5. Continue through all five worlds. In Skyforge Citadel, collect all coins, defeat the boss, answer the challenge, and reach the exit to see the victory screen and score.
 
 If the demo time is short, demonstrate one coin, one Python Coach message, one challenge, and the final boss using prepared screenshots or a saved demo run.

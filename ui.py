@@ -384,7 +384,9 @@ class UI:
                 surface, (133, 245, 194), fill, border_radius=2
             )
 
-    def draw_python_challenge(self, surface, challenge, feedback=""):
+    def draw_python_challenge(
+        self, surface, challenge, feedback="", answered=False
+    ):
         shade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         shade.fill((5, 10, 25, 175))
         surface.blit(shade, (0, 0))
@@ -403,24 +405,58 @@ class UI:
         question = self.font.render(challenge["question"], True, WHITE)
         surface.blit(question, (rect.x + 30, rect.y + 75))
 
-        for number, choice in enumerate(challenge["choices"], start=1):
-            option = self.font.render(
-                f"{number}.  {choice}",
+        if answered:
+            result = self.font.render("Correct!", True, MINT)
+            surface.blit(result, (rect.x + 30, rect.y + 125))
+
+            words = challenge["explanation"].split()
+            lines = []
+            line = ""
+            max_width = rect.width - 60
+            for word in words:
+                candidate = f"{line} {word}".strip()
+                if line and self.small_font.size(candidate)[0] > max_width:
+                    lines.append(line)
+                    line = word
+                else:
+                    line = candidate
+            if line:
+                lines.append(line)
+
+            for index, explanation_line in enumerate(lines[:3]):
+                rendered_line = self.small_font.render(
+                    explanation_line, True, WHITE
+                )
+                surface.blit(
+                    rendered_line,
+                    (rect.x + 30, rect.y + 165 + index * 24),
+                )
+
+            instruction = self.small_font.render(
+                "Press ENTER to continue",
                 True,
-                WHITE,
+                GOLD,
             )
-            surface.blit(option, (rect.x + 40, rect.y + 125 + number * 38))
+            surface.blit(instruction, (rect.x + 30, rect.y + 280))
+        else:
+            for number, choice in enumerate(challenge["choices"], start=1):
+                option = self.font.render(
+                    f"{number}.  {choice}",
+                    True,
+                    WHITE,
+                )
+                surface.blit(option, (rect.x + 40, rect.y + 125 + number * 38))
 
-        instruction = self.small_font.render(
-            "Press 1, 2, or 3 to answer",
-            True,
-            GOLD,
-        )
-        surface.blit(instruction, (rect.x + 30, rect.y + 265))
+            instruction = self.small_font.render(
+                "Press 1, 2, or 3 to answer",
+                True,
+                GOLD,
+            )
+            surface.blit(instruction, (rect.x + 30, rect.y + 265))
 
-        if feedback:
-            hint = self.small_font.render(feedback, True, (255, 190, 150))
-            surface.blit(hint, (rect.x + 30, rect.y + 295))    
+            if feedback:
+                hint = self.small_font.render(feedback, True, (255, 190, 150))
+                surface.blit(hint, (rect.x + 30, rect.y + 295))
 
     def draw_game_over(self, surface, score=0, best_score=0):
         self._draw_animated_background(surface, self.game_over_background, 1)
