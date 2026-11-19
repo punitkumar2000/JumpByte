@@ -15,7 +15,34 @@ from levels import (
 from objects import CheeseDrop, PlayerShot
 from player import Player
 from effects import ParticleSystem
-from settings import FPS, SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_TITLE
+from settings import (
+    CHECKPOINT_X,
+    EXIT_REACHED_X,
+    FIRE_POWER_SECONDS,
+    FPS,
+    MAX_LIVES,
+    PLAYER_START_POSITION,
+    QUIZ_GATE_X,
+    QUIZ_QUESTIONS_PER_WORLD,
+    SCORE_BOSS_DEFEAT,
+    SCORE_BOSS_HIT,
+    SCORE_BOSS_STOMP,
+    SCORE_CHECKPOINT,
+    SCORE_CHEESE,
+    SCORE_COIN,
+    SCORE_CORRECT_ANSWER,
+    SCORE_ENEMY_SHOT,
+    SCORE_ENEMY_STOMP,
+    SCORE_GAME_COMPLETE,
+    SCORE_POWERUP,
+    SCORE_WORLD_CLEAR,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SHOT_COOLDOWN_SECONDS,
+    SPEED_BOOST_FRAMES,
+    WORLD_WIDTH,
+    WINDOW_TITLE,
+)
 from ui import UI
 from python_concepts import PYTHON_LESSONS
 from sound_effects import SoundEffects
@@ -32,7 +59,7 @@ class Game:
             pygame.SCALED | pygame.RESIZABLE,
         )
         self.world_surface = pygame.Surface(
-            (1600, SCREEN_HEIGHT), pygame.SRCALPHA
+            (WORLD_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA
         )
         pygame.display.set_caption(WINDOW_TITLE)
         self.clock = pygame.time.Clock()
@@ -43,16 +70,13 @@ class Game:
         self.show_world_map = False
         self.camera_x = 0
         self.stage_intro_timer = 0.0
-        self.challenge_history = {
-            world_number: set() for world_number in PYTHON_CHALLENGES
-        }
         self.reset_stage()
 
     def reset_stage(self):
         self.stage_number = 1
         self.stage = build_stage_one()
-        self.player = Player(60, 400)
-        self.respawn_position = (60, 400)
+        self.player = Player(*PLAYER_START_POSITION)
+        self.respawn_position = PLAYER_START_POSITION
         self.bullets = []
         self.player_shots = []
         self.bullet_power_timer = 0.0
@@ -60,8 +84,22 @@ class Game:
         self.cheese_drops = []
         self.stomp_effect_timer = 0
         self.stomp_effect_pos = (0, 0)
-        self.player_lives = 3
+        self.player_lives = MAX_LIVES
         self.score = 0
+        self.stage_start_score = 0
+        self.stage_points = 0
+        self.worlds_cleared = 0
+        self.questions_asked = 0
+        self.questions_correct = 0
+        self.learning_concepts = set()
+        self.stage_questions_asked = 0
+        self.stage_questions_correct = 0
+        self.stage_learning_concepts = set()
+        self.challenge_history = {
+            world_number: set() for world_number in PYTHON_CHALLENGES
+        }
+        self.challenge_questions = []
+        self.challenge_question_index = 0
         self.python_coach_enabled = True
         self.python_tip = None
         self.python_tip_timer = 0.0
@@ -73,6 +111,7 @@ class Game:
         self.paused = False
         self.exit_locked = False
         self.challenge_open = False
+        self.stage_summary_open = False
         self.challenge_solved = False
         self.challenge_answered = False
         self.challenge_feedback = ""
@@ -105,6 +144,8 @@ class Game:
             and lesson_name not in self.shown_python_tips
         ):
             self.shown_python_tips.add(lesson_name)
+            self.learning_concepts.add(lesson_name.replace("_", " ").title())
+            self.stage_learning_concepts.add(lesson_name.replace("_", " ").title())
             self.python_tip = PYTHON_LESSONS[lesson_name]
             self.python_tip_timer = 3.5
 
@@ -119,7 +160,7 @@ class Game:
             getattr(enemy, "is_boss", False)
             for enemy in self.stage["enemies"]
         )
-        near_exit = self.player.rect.right >= 1490
+        near_exit = self.player.rect.right >= QUIZ_GATE_X
 
         if (
             near_exit
@@ -135,14 +176,24 @@ class Game:
                 if index not in used_questions
             ]
 
-            # Deal every question once before reshuffling the world's pool.
-            if not available_questions:
+            # Pick two different questions and avoid repeats until this
+            # world's question bank has been used once.
+            if len(available_questions) < QUIZ_QUESTIONS_PER_WORLD:
                 used_questions.clear()
                 available_questions = list(range(len(question_pool)))
 
-            question_index = random.choice(available_questions)
-            used_questions.add(question_index)
-            self.active_challenge = question_pool[question_index]
+            selected_indices = random.sample(
+                available_questions,
+                min(QUIZ_QUESTIONS_PER_WORLD, len(question_pool)),
+            )
+            used_questions.update(selected_indices)
+            self.challenge_questions = [
+                question_pool[index] for index in selected_indices
+            ]
+            self.challenge_question_index = 0
+            self.active_challenge = self.challenge_questions[0]
+            self.questions_asked += len(self.challenge_questions)
+            self.stage_questions_asked += len(self.challenge_questions)
             self.challenge_feedback = ""
             self.challenge_answered = False
             self.challenge_open = True
@@ -153,9 +204,12 @@ class Game:
             return
 
         if choice_number == challenge["answer"]:
-            self.challenge_solved = True
             self.challenge_answered = True
-            self.add_score(200)
+            self.questions_correct += 1
+            self.stage_questions_correct += 1
+            self.learning_concepts.add(challenge["topic"].title())
+            self.stage_learning_concepts.add(challenge["topic"].title())
+            self.add_score(SCORE_CORRECT_ANSWER)
             self.sounds.play_powerup()
         else:
             self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
@@ -165,12 +219,26 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
+                if self.stage_summary_open:
+                    if event.key == pygame.K_RETURN:
+                        self.continue_after_stage_summary()
+                    continue
+
                 if self.challenge_open and self.challenge_answered:
                     if event.key == pygame.K_RETURN:
-                        self.challenge_open = False
                         self.challenge_answered = False
                         self.challenge_feedback = ""
-                        self.active_challenge = None
+                        self.challenge_question_index += 1
+
+                        if self.challenge_question_index < len(self.challenge_questions):
+                            self.active_challenge = self.challenge_questions[
+                                self.challenge_question_index
+                            ]
+                        else:
+                            self.challenge_open = False
+                            self.challenge_solved = True
+                            self.active_challenge = None
+                            self.check_stage_exit()
                     continue
 
                 if event.key == pygame.K_F11:
@@ -221,7 +289,7 @@ class Game:
                         PlayerShot(shot_x, self.player.rect.centery, direction)
                     )
                     self.sounds.play_shoot()
-                    self.shot_cooldown = 0.3
+                    self.shot_cooldown = SHOT_COOLDOWN_SECONDS
                 elif event.key == pygame.K_e and self.started:
                     self.open_python_challenge()
                 elif self.challenge_open and event.key in (
@@ -262,7 +330,7 @@ class Game:
             getattr(enemy, "is_boss", False)
             for enemy in self.stage["enemies"]
         )
-        reached_exit = self.player.rect.right >= 1540
+        reached_exit = self.player.rect.right >= EXIT_REACHED_X
 
         self.exit_locked = reached_exit and (
             not all_coins_collected
@@ -275,33 +343,39 @@ class Game:
             or not all_coins_collected
             or boss_alive
             or not self.challenge_solved
+            or self.stage_summary_open
         ):
             return
 
-        self.add_score(500)
+        self.add_score(SCORE_WORLD_CLEAR)
+        if self.stage_number == len(PYTHON_CHALLENGES):
+            self.add_score(SCORE_GAME_COMPLETE)
+        self.stage_points = self.score - self.stage_start_score
+        self.stage_summary_open = True
 
-        if self.stage_number == 1:
-            self.stage_number = 2
-            self.stage = build_stage_two()
-        elif self.stage_number == 2:
-            self.stage_number = 3
-            self.stage = build_stage_three()
-        elif self.stage_number == 3:
-            self.stage_number = 4
-            self.stage = build_stage_four()
-        elif self.stage_number == 4:
-            self.stage_number = 5
-            self.stage = build_stage_five()
-        else:
-            self.add_score(1000)
+    def continue_after_stage_summary(self):
+        """Load the next world after the player has read the score card."""
+        self.stage_summary_open = False
+        self.worlds_cleared += 1
+
+        if self.stage_number >= len(PYTHON_CHALLENGES):
             self.game_won = True
             return
 
+        stage_builders = (
+            build_stage_one,
+            build_stage_two,
+            build_stage_three,
+            build_stage_four,
+            build_stage_five,
+        )
+        self.stage_number += 1
+        self.stage = stage_builders[self.stage_number - 1]()
+
         self.stage_intro_timer = 1.8
-        self.show_python_tip("dictionaries")
         self.prepare_background()
-        self.player = Player(60, 400)
-        self.respawn_position = (60, 400)
+        self.player = Player(*PLAYER_START_POSITION)
+        self.respawn_position = PLAYER_START_POSITION
         self.checkpoint_message_timer = 0.0
         self.bullets.clear()
         self.player_shots.clear()
@@ -318,6 +392,13 @@ class Game:
         self.challenge_answered = False
         self.challenge_feedback = ""
         self.active_challenge = None
+        self.challenge_questions = []
+        self.challenge_question_index = 0
+        self.stage_questions_asked = 0
+        self.stage_questions_correct = 0
+        self.stage_learning_concepts = set()
+        self.stage_start_score = self.score
+        self.show_python_tip("dictionaries")
         self.camera_x = 0
 
     def update(self, dt=1 / FPS):
@@ -327,6 +408,7 @@ class Game:
             or self.game_won
             or self.paused
             or self.challenge_open
+            or self.stage_summary_open
         ):
             return
 
@@ -395,16 +477,16 @@ class Game:
         # First time crossing the midpoint activates a properly floor-aligned
         # checkpoint and gives clear visual/audio feedback.
         if (
-            self.player.rect.centerx >= 800
-            and self.respawn_position == (60, 400)
+            self.player.rect.centerx >= CHECKPOINT_X
+            and self.respawn_position == PLAYER_START_POSITION
         ):
             self.respawn_position = (
-                760,
+                CHECKPOINT_X - 40,
                 490 - self.player.rect.height,
             )
             self.checkpoint_message_timer = 1.8
-            self.add_score(200)
-            self.particles.burst(800, 350, (115, 255, 160), 22, 150)
+            self.add_score(SCORE_CHECKPOINT)
+            self.particles.burst(CHECKPOINT_X, 350, (115, 255, 160), 22, 150)
             self.sounds.play_checkpoint()
             self.show_python_tip("tuples")
 
@@ -433,15 +515,15 @@ class Game:
                     self.hit_cooldown = 18
 
                     if getattr(enemy, "is_boss", False):
-                        self.add_score(250)
+                        self.add_score(SCORE_BOSS_STOMP)
                         self.show_python_tip("inheritance")
                         enemy.health -= 1
                         if enemy.health <= 0:
-                            self.add_score(500)
+                            self.add_score(SCORE_BOSS_DEFEAT)
                             self.drop_cheese(enemy)
                             self.stage["enemies"].remove(enemy)
                     else:
-                        self.add_score(200)
+                        self.add_score(SCORE_ENEMY_STOMP)
                         self.show_python_tip("classes")
                         self.drop_cheese(enemy)
                         self.stage["enemies"].remove(enemy)
@@ -456,7 +538,7 @@ class Game:
 
         self.bullets = [
             bullet for bullet in self.bullets
-            if bullet.rect.right > 0 and bullet.rect.left < 1600
+            if bullet.rect.right > 0 and bullet.rect.left < WORLD_WIDTH
         ]
 
         for shot in self.player_shots[:]:
@@ -473,17 +555,17 @@ class Game:
 
                 if getattr(hit_enemy, "is_boss", False):
                     hit_enemy.health -= 1
-                    self.add_score(100)
+                    self.add_score(SCORE_BOSS_HIT)
                     if hit_enemy.health <= 0:
-                        self.add_score(500)
+                        self.add_score(SCORE_BOSS_DEFEAT)
                         self.drop_cheese(hit_enemy)
                         self.stage["enemies"].remove(hit_enemy)
                 else:
-                    self.add_score(150)
+                    self.add_score(SCORE_ENEMY_SHOT)
                     self.drop_cheese(hit_enemy)
                     self.stage["enemies"].remove(hit_enemy)
 
-            elif shot.rect.right < 0 or shot.rect.left > 1600:
+            elif shot.rect.right < 0 or shot.rect.left > WORLD_WIDTH:
                 self.player_shots.remove(shot)
 
         for drop in self.cheese_drops[:]:
@@ -491,7 +573,7 @@ class Game:
 
             if self.player.rect.colliderect(drop.rect):
                 self.cheese_drops.remove(drop)
-                self.add_score(25)
+                self.add_score(SCORE_CHEESE)
                 continue
 
             if drop.lifetime <= 0:
@@ -501,7 +583,7 @@ class Game:
             if not coin.collected and self.player.rect.colliderect(coin.rect):
                 coin.collected = True
                 self.show_python_tip("lists")
-                self.add_score(100)
+                self.add_score(SCORE_COIN)
                 self.sounds.play_coin()
                 self.particles.burst(*coin.rect.center, (255, 220, 85), 14, 165)
 
@@ -510,10 +592,10 @@ class Game:
                 powerup.collected = True
                 self.show_python_tip("conditionals")
                 if powerup.kind == "bullet":
-                    self.bullet_power_timer = 5.0
+                    self.bullet_power_timer = FIRE_POWER_SECONDS
                 else:
-                    self.player.speed_boost_timer = 300
-                self.add_score(50)
+                    self.player.speed_boost_timer = SPEED_BOOST_FRAMES
+                self.add_score(SCORE_POWERUP)
                 self.sounds.play_powerup()
                 self.particles.burst(
                     *powerup.rect.center, (120, 235, 255), 20, 185
@@ -525,48 +607,49 @@ class Game:
             0,
             min(
                 self.player.rect.centerx - SCREEN_WIDTH // 2,
-                1600 - SCREEN_WIDTH,
+                WORLD_WIDTH - SCREEN_WIDTH,
             ),
         )
 
     def draw_exit_gate(self, world, locked=True):
+        pole_x = WORLD_WIDTH - 70
         # Gate pole and base
-        pygame.draw.rect(world, (90, 70, 55), (1530, 405, 8, 85))
-        pygame.draw.rect(world, (145, 115, 80), (1527, 480, 14, 10))
-        pygame.draw.circle(world, (255, 220, 120), (1534, 402), 5)
+        pygame.draw.rect(world, (90, 70, 55), (pole_x, 405, 8, 85))
+        pygame.draw.rect(world, (145, 115, 80), (pole_x - 3, 480, 14, 10))
+        pygame.draw.circle(world, (255, 220, 120), (pole_x + 4, 402), 5)
 
         # Gently waving flag
         wave = (pygame.time.get_ticks() // 250) % 2
-        tip_x = 1580 if wave == 0 else 1573
+        tip_x = WORLD_WIDTH - (20 if wave == 0 else 27)
         middle_y = 421 if wave == 0 else 424
 
         flag_color = (155, 165, 185) if locked else (245, 190, 65)
         pygame.draw.polygon(
             world,
             flag_color,
-            [(1538, 405), (tip_x, middle_y), (1538, 438)],
+            [(pole_x + 8, 405), (tip_x, middle_y), (pole_x + 8, 438)],
         )
         pygame.draw.line(
             world,
             (215, 220, 235) if locked else (255, 230, 145),
-            (1541, 411),
+            (pole_x + 11, 411),
             (tip_x - 8, middle_y),
             2,
         )
         if locked:
             pygame.draw.arc(
-                world, (220, 220, 230), (1542, 447, 12, 13),
+                world, (220, 220, 230), (pole_x + 12, 447, 12, 13),
                 math.pi, 2 * math.pi, 2,
             )
             pygame.draw.rect(
-                world, (220, 220, 230), (1541, 453, 14, 11),
+                world, (220, 220, 230), (pole_x + 11, 453, 14, 11),
                 border_radius=2,
             )
         else:
             pulse = (math.sin(pygame.time.get_ticks() / 160) + 1) / 2
             pygame.draw.circle(
                 world, (255, 225, 125, 90 + round(pulse * 90)),
-                (1538, 421), 18 + round(pulse * 3), 2,
+                (pole_x + 8, 421), 18 + round(pulse * 3), 2,
             )
 
     def draw_scenery(self, world):
@@ -758,7 +841,7 @@ class Game:
 
     def prepare_background(self):
         """Cache the detailed scenery so it scrolls behind the gameplay layer."""
-        self.background_surface = pygame.Surface((1600, SCREEN_HEIGHT))
+        self.background_surface = pygame.Surface((WORLD_WIDTH, SCREEN_HEIGHT))
         self.background_surface.fill(self.stage["info"]["background"])
         self.draw_scenery(self.background_surface)
 
@@ -829,17 +912,25 @@ class Game:
             # Gray checkpoint becomes green after activation.
             flag_color = (
                 (65, 210, 130)
-                if self.respawn_position != (60, 400)
+                if self.respawn_position != PLAYER_START_POSITION
                 else (185, 185, 195)
             )
 
-            pygame.draw.rect(world, (90, 70, 55), (796, 350, 6, 55))
+            pygame.draw.rect(
+                world, (90, 70, 55), (CHECKPOINT_X - 4, 350, 6, 55)
+            )
             pygame.draw.polygon(
                 world,
                 flag_color,
-                [(802, 351), (836, 361), (802, 373)],
+                [
+                    (CHECKPOINT_X + 2, 351),
+                    (CHECKPOINT_X + 36, 361),
+                    (CHECKPOINT_X + 2, 373),
+                ],
             )
-            pygame.draw.circle(world, (255, 245, 190), (799, 348), 4)
+            pygame.draw.circle(
+                world, (255, 245, 190), (CHECKPOINT_X - 1, 348), 4
+            )
 
             for coin in self.stage["coins"]:
                 coin.draw(world)
@@ -896,7 +987,7 @@ class Game:
                 self.player_lives,
                 self.player.speed_boost_timer,
                 total_coins=len(self.stage["coins"]),
-                progress=self.player.rect.centerx / 1600,
+                progress=self.player.rect.centerx / WORLD_WIDTH,
                 stage_number=self.stage_number,
                 sound_muted=self.sounds.muted,
                 score=self.score,
@@ -963,9 +1054,37 @@ class Game:
             else:
                 self.ui.draw_start(self.screen)
         elif self.game_over:
-            self.ui.draw_game_over(self.screen, self.score, self.best_score)
+            self.ui.draw_game_over(
+                self.screen,
+                self.score,
+                self.best_score,
+                self.worlds_cleared,
+                self.questions_correct,
+                self.questions_asked,
+                sorted(self.learning_concepts),
+            )
         elif self.game_won:
-            self.ui.draw_win(self.screen, self.score, self.best_score)
+            self.ui.draw_win(
+                self.screen,
+                self.score,
+                self.best_score,
+                self.worlds_cleared,
+                self.questions_correct,
+                self.questions_asked,
+                sorted(self.learning_concepts),
+            )
+        elif self.stage_summary_open:
+            self.ui.draw_stage_summary(
+                self.screen,
+                self.stage_number,
+                self.stage["info"]["name"],
+                self.stage_points,
+                self.score,
+                self.stage_questions_correct,
+                self.stage_questions_asked,
+                sorted(self.stage_learning_concepts),
+                is_final=self.stage_number == len(PYTHON_CHALLENGES),
+            )
         elif self.paused:
             self.ui.draw_pause(self.screen)
 
@@ -976,6 +1095,8 @@ class Game:
                 self.active_challenge,
                 self.challenge_feedback,
                 answered=self.challenge_answered,
+                question_number=self.challenge_question_index + 1,
+                question_total=len(self.challenge_questions),
             )
         pygame.display.flip()
 

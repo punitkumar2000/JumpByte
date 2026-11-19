@@ -4,6 +4,7 @@ import pygame
 import math
 from sprites import draw_frame, load_frames
 from pathlib import Path
+from settings import MAX_LIVES
 
 
 WHITE = (247, 250, 255)
@@ -67,16 +68,9 @@ class UI:
 
         pygame.draw.line(surface, (255, 255, 255, 55), (355, 25), (355, 67), 1)
         lives_label = self.small_font.render("LIVES", True, (180, 194, 218))
+        lives_value = self.font.render(f"{lives}/{MAX_LIVES}", True, WHITE)
         surface.blit(lives_label, (375, 19))
-        for index in range(3):
-            color = (255, 112, 132) if index < lives else (89, 97, 116)
-            x = 384 + index * 24
-            pygame.draw.circle(surface, color, (x - 4, 48), 6)
-            pygame.draw.circle(surface, color, (x + 4, 48), 6)
-            pygame.draw.polygon(
-                surface, color,
-                [(x - 10, 49), (x + 10, 49), (x, 61)],
-            )
+        surface.blit(lives_value, (375, 39))
 
         pygame.draw.line(surface, (255, 255, 255, 55), (472, 25), (472, 67), 1)
         progress_label = self.small_font.render("WORLD PROGRESS", True, (180, 194, 218))
@@ -385,7 +379,8 @@ class UI:
             )
 
     def draw_python_challenge(
-        self, surface, challenge, feedback="", answered=False
+        self, surface, challenge, feedback="", answered=False,
+        question_number=1, question_total=1,
     ):
         shade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         shade.fill((5, 10, 25, 175))
@@ -396,7 +391,7 @@ class UI:
         self._panel(surface, rect, color=(22, 31, 55, 245), radius=24)
 
         title = self.subtitle_font.render(
-            f"PYTHON GATE  •  {challenge['topic']}",
+            f"PYTHON GATE  •  {challenge['topic']}  •  {question_number}/{question_total}",
             True,
             MINT,
         )
@@ -458,39 +453,114 @@ class UI:
                 hint = self.small_font.render(feedback, True, (255, 190, 150))
                 surface.blit(hint, (rect.x + 30, rect.y + 295))
 
-    def draw_game_over(self, surface, score=0, best_score=0):
-        self._draw_animated_background(surface, self.game_over_background, 1)
-        rect = pygame.Rect(
-            (surface.get_width() - 500) // 2,
-            (surface.get_height() - 205) // 2,
-            500,
-            205,
-        )
-        title = self.title_font.render("Out of lives", True, WHITE)
-        result = self.font.render(
-            f"Score {score:,}   •   Best {best_score:,}", True, MINT
-        )
-        hint = self.font.render("Press R to try again", True, GOLD)
-        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 77)))
-        surface.blit(result, result.get_rect(center=(rect.centerx, rect.y + 119)))
-        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.y + 160)))
+    def _wrap_lines(self, text, font, max_width):
+        lines = []
+        line = ""
+        for word in text.split():
+            candidate = f"{line} {word}".strip()
+            if line and font.size(candidate)[0] > max_width:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        if line:
+            lines.append(line)
+        return lines
 
-    def draw_win(self, surface, score=0, best_score=0):
-        self._draw_animated_background(surface, self.win_background, 2)
-        rect = pygame.Rect(
-            (surface.get_width() - 650) // 2,
-            (surface.get_height() - 220) // 2,
-            650,
-            220,
+    def draw_stage_summary(
+        self, surface, world_number, world_name, stage_score, total_score,
+        questions_correct, questions_asked, concepts, is_final=False,
+    ):
+        """Show the world result and the learning collected in that world."""
+        rect = self._card(surface, 740, 350)
+        title = self.subtitle_font.render(
+            f"WORLD {world_number} COMPLETE", True, MINT
         )
-        title = self.title_font.render("Adventure complete!", True, WHITE)
+        name = self.font.render(world_name, True, WHITE)
+        score = self.font.render(
+            f"World points: +{stage_score:,}     Total score: {total_score:,}",
+            True,
+            GOLD,
+        )
+        quiz = self.font.render(
+            f"Python questions: {questions_correct}/{questions_asked} correct",
+            True,
+            WHITE,
+        )
+        learned = self.small_font.render("WHAT YOU PRACTISED", True, MINT)
+        topics_text = ", ".join(concepts) if concepts else "Keep playing to discover more Python ideas."
+        topic_lines = self._wrap_lines(topics_text, self.small_font, rect.width - 70)
+
+        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 48)))
+        surface.blit(name, name.get_rect(center=(rect.centerx, rect.y + 92)))
+        surface.blit(score, score.get_rect(center=(rect.centerx, rect.y + 140)))
+        surface.blit(quiz, quiz.get_rect(center=(rect.centerx, rect.y + 180)))
+        surface.blit(learned, learned.get_rect(center=(rect.centerx, rect.y + 222)))
+        for index, line in enumerate(topic_lines[:3]):
+            rendered = self.small_font.render(line, True, WHITE)
+            surface.blit(
+                rendered,
+                rendered.get_rect(center=(rect.centerx, rect.y + 247 + index * 19)),
+            )
+        hint_text = "Press ENTER to finish your adventure" if is_final else "Press ENTER for the next world"
+        hint = self.small_font.render(hint_text, True, GOLD)
+        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.bottom - 24)))
+
+    def _draw_end_screen(
+        self, surface, background, phase, title_text, score, best_score,
+        worlds_cleared, questions_correct, questions_asked, concepts, hint_text,
+    ):
+        self._draw_animated_background(surface, background, phase)
+        rect = self._card(surface, 790, 360)
+        title = self.subtitle_font.render(title_text, True, WHITE)
         result = self.font.render(
-            f"Score {score:,}   •   Best {best_score:,}", True, MINT
+            f"Score {score:,}   •   Best {best_score:,}", True, GOLD
         )
-        hint = self.font.render("You crossed all five worlds. Press R to play again.", True, GOLD)
-        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 82)))
-        surface.blit(result, result.get_rect(center=(rect.centerx, rect.y + 132)))
-        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.y + 174)))
+        reflection_title = self.small_font.render(
+            "YOUR LEARNING JOURNEY", True, MINT
+        )
+        progress = self.font.render(
+            f"Worlds cleared: {worlds_cleared}/5    •    Python answers: {questions_correct}/{questions_asked}",
+            True,
+            WHITE,
+        )
+        topics = ", ".join(concepts) if concepts else "Play more worlds to discover Python concepts."
+        topic_lines = self._wrap_lines(topics, self.small_font, rect.width - 70)
+        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 48)))
+        surface.blit(result, result.get_rect(center=(rect.centerx, rect.y + 94)))
+        surface.blit(
+            reflection_title,
+            reflection_title.get_rect(center=(rect.centerx, rect.y + 143)),
+        )
+        surface.blit(progress, progress.get_rect(center=(rect.centerx, rect.y + 180)))
+        for index, line in enumerate(topic_lines[:3]):
+            rendered = self.small_font.render(line, True, WHITE)
+            surface.blit(
+                rendered,
+                rendered.get_rect(center=(rect.centerx, rect.y + 215 + index * 20)),
+            )
+        hint = self.small_font.render(hint_text, True, GOLD)
+        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.bottom - 24)))
+
+    def draw_game_over(
+        self, surface, score=0, best_score=0, worlds_cleared=0,
+        questions_correct=0, questions_asked=0, concepts=(),
+    ):
+        self._draw_end_screen(
+            surface, self.game_over_background, 1, "Out of lives",
+            score, best_score, worlds_cleared, questions_correct,
+            questions_asked, concepts, "Press R to try again",
+        )
+
+    def draw_win(
+        self, surface, score=0, best_score=0, worlds_cleared=5,
+        questions_correct=0, questions_asked=0, concepts=(),
+    ):
+        self._draw_end_screen(
+            surface, self.win_background, 2, "Adventure complete!",
+            score, best_score, worlds_cleared, questions_correct,
+            questions_asked, concepts, "Press R to play again",
+        )
 
     def draw_pause(self, surface):
         rect = self._card(surface, 430, 180)

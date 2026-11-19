@@ -22,7 +22,9 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - A vertical moving platform in Green Meadow that carries the player
 - Cheese bonus pickups that bounce out when cats or the boss are defeated
 - A blue fire power-up in Moonlit Cave; press `F` to shoot while it is active
-- Random Python gate questions in every world; questions do not repeat until that world's pool has been used
+- Two different random Python questions at each world exit, with hints and answer explanations
+- A world score recap after the quiz and a learning summary on both win and game-over screens
+- Easy-to-change lives, world size, quiz length, score rewards, and enemy tuning in `settings.py`
 
 ## Worlds and objectives
 
@@ -36,7 +38,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 
 | Key | Action |
 | --- | --- |
-| Enter | Open the journey map, then start the game |
+| Enter | Open the journey map, then start the game; continue after each quiz explanation and world recap |
 | A / D or Left / Right arrows | Move |
 | Space, Up arrow, or W | Jump |
 | P | Pause or resume |
@@ -44,7 +46,6 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 | F | Fire while the blue power-up is active |
 | E | Open the Python challenge near the exit after meeting its requirements |
 | 1 / 2 / 3 | Choose an answer in a Python challenge |
-| Enter | Continue after reading a correct-answer explanation |
 | T | Turn Python Coach lessons on or off |
 | R | Restart after game over or winning |
 | F11 | Toggle fullscreen/windowed mode where the system sends F11 to the game |
@@ -90,7 +91,7 @@ python main.py
 | `ui.py` | Start screen, HUD, pause, game-over, and win screens |
 | `sound_effects.py` | Generated sound effects and mute control |
 | `save_data.py` | Loads and saves the local best score |
-| `settings.py` | Shared game settings |
+| `settings.py` | Shared window, movement, lives, quiz, score, and enemy settings |
 | `python_challenges.py` | Python questions and answer feedback for each world |
 | `python_concepts.py` | Short Python Coach explanations shown during play |
 | `workload.py` | Suggested module map for viva preparation |
@@ -99,6 +100,8 @@ python main.py
 ## Python concepts used
 
 The project uses variables, conditionals, loops, functions, modules, lists, tuples, dictionaries, classes, objects, and inheritance. `Boss` inherits from `Enemy`; the game stores platforms, coins, enemies, and power-ups in collections.
+
+To adjust the game without searching several files, edit the clearly marked **EASY GAME SETTINGS** section in `settings.py`. For example, change `MAX_LIVES` to change starting lives, `QUIZ_QUESTIONS_PER_WORLD` to change the number of gate questions, and the `SCORE_...` values to adjust rewards. Movement and enemy values are in the same section. `WORLD_WIDTH` changes the overall world bounds; if you change it substantially, review platform and object positions in `levels.py` too.
 
 ## Project note
 

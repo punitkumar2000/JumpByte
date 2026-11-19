@@ -2,11 +2,12 @@
 
 from enemy import Boss, Enemy
 from objects import Coin, Hazard, MovingPlatform, Platform, PowerUp
+from settings import WORLD_WIDTH
 
 
 def build_stage_one():
     platforms = [
-        Platform(0, 490, 1600, 50),
+        Platform(0, 490, WORLD_WIDTH, 50),
         Platform(210, 405, 150),
         Platform(440, 335, 150),
         Platform(700, 405, 170),
@@ -52,7 +53,7 @@ def build_stage_one():
 
 def build_stage_two():
     platforms = [
-        Platform(0, 490, 1600, 50),
+        Platform(0, 490, WORLD_WIDTH, 50),
         Platform(170, 410, 130),
         Platform(370, 345, 140),
         Platform(610, 405, 150),
@@ -93,7 +94,7 @@ def build_stage_two():
 
 def build_stage_three():
     platforms = [
-        Platform(0, 490, 1600, 50),
+        Platform(0, 490, WORLD_WIDTH, 50),
         Platform(170, 410, 140),
         Platform(400, 340, 150),
         Platform(660, 405, 150),
@@ -132,7 +133,7 @@ def build_stage_three():
 
 def build_stage_four():
     platforms = [
-        Platform(0, 490, 1600, 50),
+        Platform(0, 490, WORLD_WIDTH, 50),
         Platform(170, 410, 130),
         Platform(380, 340, 140),
         Platform(610, 400, 150),
@@ -173,7 +174,7 @@ def build_stage_four():
 
 def build_stage_five():
     platforms = [
-        Platform(0, 490, 1600, 50),
+        Platform(0, 490, WORLD_WIDTH, 50),
         Platform(150, 410, 140),
         Platform(350, 345, 150),
         Platform(590, 405, 150),
