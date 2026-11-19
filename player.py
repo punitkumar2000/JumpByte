@@ -8,9 +8,10 @@ from sprites import draw_frame, load_frames
 from settings import (
     GRAVITY,
     JUMP_SPEED,
-    PLAYER_COLOR,
+    PLAYER_START_POSITION,
     PLAYER_SPEED,
     SCREEN_HEIGHT,
+    WORLD_WIDTH,
 )
 
 
@@ -53,7 +54,7 @@ class Player:
         self.is_moving = move_x != 0 and self.rect.x != previous_rect.x
         # Keep the player inside the level.
         self.rect.left = max(0, self.rect.left)
-        self.rect.right = min(1600, self.rect.right)
+        self.rect.right = min(WORLD_WIDTH, self.rect.right)
 
         # Jump only when standing on a platform.
         jump_pressed = (
@@ -101,7 +102,7 @@ class Player:
 
         # If the player falls off the level, return them to the start.
         if self.rect.top > SCREEN_HEIGHT:
-            self.rect.topleft = (60, 400)
+            self.rect.topleft = PLAYER_START_POSITION
             self.velocity_y = 0
             self.on_ground = False
 

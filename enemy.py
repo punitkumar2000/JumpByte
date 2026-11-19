@@ -4,6 +4,20 @@ import math
 
 import pygame
 from sprites import draw_frame, load_frames
+from settings import (
+    BOSS_ENRAGED_DELAY,
+    BOSS_ENRAGED_SPEED,
+    BOSS_HEALTH,
+    BOSS_JUMP_DELAY,
+    BOSS_SHOOT_DELAY,
+    BOSS_SPEED,
+    ENEMY_BULLET_SPEED,
+    ENEMY_GRAVITY,
+    ENEMY_JUMP_DELAY,
+    ENEMY_JUMP_SPEED,
+    ENEMY_SHOOT_DELAY,
+    ENEMY_SPEED,
+)
 
 
 class Bullet:
@@ -12,7 +26,7 @@ class Bullet:
     def __init__(self, x, y, direction):
         self.rect = pygame.Rect(x, y, 12, 6)
         self.direction = direction
-        self.speed = 7
+        self.speed = ENEMY_BULLET_SPEED
 
     def update(self):
         self.rect.x += self.speed * self.direction
@@ -39,18 +53,18 @@ class Enemy:
         self.rect = pygame.Rect(x, y, 34, 30)
         self.left_bound = left_bound
         self.right_bound = right_bound
-        self.speed = 2
+        self.speed = ENEMY_SPEED
         self.direction = 1
 
         self.ground_y = y
         self.velocity_y = 0
-        self.gravity = 0.5
-        self.jump_speed = -10
+        self.gravity = ENEMY_GRAVITY
+        self.jump_speed = ENEMY_JUMP_SPEED
         self.jump_timer = 0
-        self.jump_delay = 120
+        self.jump_delay = ENEMY_JUMP_DELAY
 
         self.shoot_timer = 0
-        self.shoot_delay = 90
+        self.shoot_delay = ENEMY_SHOOT_DELAY
         self.attack_timer = 0
 
     def update(self):
@@ -144,19 +158,19 @@ class Boss(Enemy):
 
         self.rect = pygame.Rect(x, y, 64, 48)
         self.ground_y = y
-        self.speed = 1
-        self.jump_delay = 90
-        self.shoot_delay = 110
+        self.speed = BOSS_SPEED
+        self.jump_delay = BOSS_JUMP_DELAY
+        self.shoot_delay = BOSS_SHOOT_DELAY
 
-        self.max_health = 3
+        self.max_health = BOSS_HEALTH
         self.health = self.max_health
         self.is_boss = True
 
     def update(self):
         if self.health == 1:
-            self.speed = 2
-            self.shoot_delay = 75
-            self.jump_delay = 75
+            self.speed = BOSS_ENRAGED_SPEED
+            self.shoot_delay = BOSS_ENRAGED_DELAY
+            self.jump_delay = BOSS_ENRAGED_DELAY
 
         super().update()
 

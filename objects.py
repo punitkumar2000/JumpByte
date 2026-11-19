@@ -4,7 +4,7 @@ import math
 
 import pygame
 
-from settings import COIN_COLOR, DIRT, GRASS
+from settings import COIN_COLOR, DIRT, GRASS, PLAYER_SHOT_SPEED
 
 
 class Platform:
@@ -208,7 +208,7 @@ class PlayerShot:
     def __init__(self, x, y, direction):
         self.rect = pygame.Rect(x, y, 18, 10)
         self.direction = direction
-        self.speed = 10
+        self.speed = PLAYER_SHOT_SPEED
 
     def update(self):
         self.rect.x += self.speed * self.direction
