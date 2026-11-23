@@ -25,7 +25,7 @@ The game loop runs many times each second. The game logic and saved values live 
 
 - `main.py` is the small launch file. `if __name__ == "__main__":` makes the game start when this file is run. `Game().run()` creates the game and starts its loop.
 - `game.py` connects the player, levels, enemies, objects, questions, sounds, and UI. The `Game` class keeps the current score, lives, stage, and screen state.
-- `save_data.py` remembers the best score locally in `high_score.json`.
+- `save_data.py` remembers the overall best score and each named player's progress locally in `high_score.json`.
 
 ### Main functions to explain
 
@@ -39,11 +39,13 @@ The game loop runs many times each second. The game logic and saved values live 
 - `Game.lose_life()` removes a life after damage and starts game over when no lives remain.
 - `Game.check_stage_exit()` checks whether the player has met the conditions to finish a world.
 - `Game.continue_after_stage_summary()` moves to the next world after the player reads the recap.
+- `Game.save_profile_progress()` saves cleared worlds, quiz results, score, and learned topics for the selected player.
 - `load_best_score()` reads the saved score; `save_best_score(score)` writes it.
+- `load_player_profile(name)` loads a profile; `save_player_profile(name, profile)` saves it.
 
 ### Simple viva explanation
 
-“`main.py` starts the game. The `Game` class coordinates the other modules. Its loop handles input, updates the game, and draws each frame. The save module stores the best score in a local JSON file.”
+“`main.py` starts the game. The `Game` class coordinates the other modules. Its loop handles input, updates the game, and draws each frame. The save module stores the overall best score and named player progress in a local JSON file.”
 
 ## Team member 2 — Player and animation
 

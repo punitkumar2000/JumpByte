@@ -25,6 +25,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - Two different random Python questions at each world exit, with hints and answer explanations
 - A world score recap after the quiz and a learning summary on both win and game-over screens
 - Easy-to-change lives, world size, quiz length, score rewards, and enemy tuning in `settings.py`
+- Named local player profiles that show each player's best score, worlds cleared, quiz result, and learned Python topics
 
 ## Worlds and objectives
 
@@ -38,7 +39,9 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 
 | Key | Action |
 | --- | --- |
-| Enter | Open the journey map, then start the game; continue after each quiz explanation and world recap |
+| Type a name, Enter | Load or create that player's local profile and open the journey map |
+| Enter on the journey map | Start the adventure; also continue after quiz explanations and world recaps |
+| N on the journey map | Switch to another player profile |
 | A / D or Left / Right arrows | Move |
 | Space, Up arrow, or W | Jump |
 | P | Pause or resume |
@@ -90,18 +93,21 @@ python main.py
 | `levels.py` | Layouts and data for the five worlds |
 | `ui.py` | Start screen, HUD, pause, game-over, and win screens |
 | `sound_effects.py` | Generated sound effects and mute control |
-| `save_data.py` | Loads and saves the local best score |
+| `save_data.py` | Loads and saves the overall best score and named player profiles |
 | `settings.py` | Shared window, movement, lives, quiz, score, and enemy settings |
 | `python_challenges.py` | Python questions and answer feedback for each world |
 | `python_concepts.py` | Short Python Coach explanations shown during play |
 | `workload.py` | Suggested module map for viva preparation |
 | `PRESENTATION_GUIDE.md` | Demo walkthrough and viva revision notes |
+| `TEAM_CODE_GUIDE.md` | Five-member file split, key functions, and simple code explanations |
 
 ## Python concepts used
 
 The project uses variables, conditionals, loops, functions, modules, lists, tuples, dictionaries, classes, objects, and inheritance. `Boss` inherits from `Enemy`; the game stores platforms, coins, enemies, and power-ups in collections.
 
 To adjust the game without searching several files, edit the clearly marked **EASY GAME SETTINGS** section in `settings.py`. For example, change `MAX_LIVES` to change starting lives, `QUIZ_QUESTIONS_PER_WORLD` to change the number of gate questions, and the `SCORE_...` values to adjust rewards. Movement and enemy values are in the same section. `WORLD_WIDTH` changes the overall world bounds; if you change it substantially, review platform and object positions in `levels.py` too.
+
+At the start screen, type a player name and press Enter. JumpByte saves that name's best score, furthest worlds cleared, latest quiz result, and learned topics in `high_score.json` on this computer. Enter the same name next time to see that profile. These profiles are local and do not sync between computers; the save file is ignored by Git.
 
 ## Project note
 

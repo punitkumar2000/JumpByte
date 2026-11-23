@@ -46,7 +46,12 @@ from settings import (
 from ui import UI
 from python_concepts import PYTHON_LESSONS
 from sound_effects import SoundEffects
-from save_data import load_best_score, save_best_score
+from save_data import (
+    load_best_score,
+    load_player_profile,
+    save_best_score,
+    save_player_profile,
+)
 from python_challenges import PYTHON_CHALLENGES
 
 
@@ -65,6 +70,11 @@ class Game:
         self.clock = pygame.time.Clock()
         self.ui = UI()
         self.best_score = load_best_score()
+        self.profile_name_input = ""
+        self.profile_name = ""
+        self.profile_data = load_player_profile("")
+        self.profile_preview = self.profile_data
+        pygame.key.start_text_input()
         self.running = True
         self.started = False
         self.show_world_map = False
@@ -127,6 +137,36 @@ class Game:
         if self.score > self.best_score:
             self.best_score = self.score
             save_best_score(self.best_score)
+        if self.profile_name:
+            self.profile_data["best_score"] = self.best_score
+            self.save_profile_progress()
+
+    def save_profile_progress(self):
+        """Save the selected player's score and learning progress."""
+        if not self.profile_name:
+            return
+
+        saved = load_player_profile(self.profile_name)
+        saved["best_score"] = max(saved["best_score"], self.best_score)
+        saved["best_worlds_cleared"] = max(
+            saved["best_worlds_cleared"], self.worlds_cleared
+        )
+        has_run_progress = (
+            self.worlds_cleared > 0
+            or self.questions_asked > 0
+            or self.score > 0
+            or self.game_over
+        )
+        if self.questions_asked > 0 or self.worlds_cleared > 0 or self.game_over:
+            saved["last_questions_asked"] = self.questions_asked
+            saved["last_questions_correct"] = self.questions_correct
+        if has_run_progress:
+            saved["last_score"] = self.score
+        saved["concepts_learned"] = sorted(
+            set(saved["concepts_learned"]) | self.learning_concepts
+        )
+        self.profile_data = saved
+        save_player_profile(self.profile_name, saved)
 
     def drop_cheese(self, enemy):
         for direction in (-2, -1, 1, 2):
@@ -148,6 +188,7 @@ class Game:
             self.stage_learning_concepts.add(lesson_name.replace("_", " ").title())
             self.python_tip = PYTHON_LESSONS[lesson_name]
             self.python_tip_timer = 3.5
+            self.save_profile_progress()
 
     def open_python_challenge(self):
         if self.challenge_open:
@@ -197,6 +238,7 @@ class Game:
             self.challenge_feedback = ""
             self.challenge_answered = False
             self.challenge_open = True
+            self.save_profile_progress()
 
     def answer_python_challenge(self, choice_number):
         challenge = self.active_challenge
@@ -213,11 +255,23 @@ class Game:
             self.sounds.play_powerup()
         else:
             self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
+            self.save_profile_progress()
 
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif (
+                event.type == pygame.TEXTINPUT
+                and not self.started
+                and not self.show_world_map
+            ):
+                self.profile_name_input = (
+                    self.profile_name_input + event.text
+                )[:18]
+                self.profile_preview = load_player_profile(
+                    self.profile_name_input.strip()
+                )
             elif event.type == pygame.KEYDOWN:
                 if self.stage_summary_open:
                     if event.key == pygame.K_RETURN:
@@ -241,16 +295,41 @@ class Game:
                             self.check_stage_exit()
                     continue
 
+                if not self.started and not self.show_world_map:
+                    if event.key == pygame.K_F11:
+                        pygame.display.toggle_fullscreen()
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.profile_name_input = self.profile_name_input[:-1]
+                        self.profile_preview = load_player_profile(
+                            self.profile_name_input.strip()
+                        )
+                    elif event.key == pygame.K_RETURN:
+                        name = " ".join(self.profile_name_input.strip().split())
+                        if name:
+                            self.profile_name = name
+                            self.profile_data = load_player_profile(name)
+                            self.profile_preview = self.profile_data
+                            self.best_score = self.profile_data["best_score"]
+                            self.reset_stage()
+                            self.show_world_map = True
+                            pygame.key.stop_text_input()
+                    continue
+
                 if event.key == pygame.K_F11:
                     pygame.display.toggle_fullscreen()
                 elif event.key == pygame.K_RETURN:
-                    if not self.started and not self.show_world_map:
-                        self.show_world_map = True
-                    elif self.show_world_map:
+                    if self.show_world_map:
                         self.show_world_map = False
                         self.started = True
                         self.stage_intro_timer = 1.8
                         self.show_python_tip("strings")
+                elif event.key == pygame.K_n and self.show_world_map:
+                    self.show_world_map = False
+                    self.profile_name = ""
+                    self.profile_name_input = ""
+                    self.profile_data = load_player_profile("")
+                    self.profile_preview = self.profile_data
+                    pygame.key.start_text_input()
                 elif event.key == pygame.K_ESCAPE and self.show_world_map:
                     self.show_world_map = False
                 elif (
@@ -321,6 +400,7 @@ class Game:
 
         if self.player_lives <= 0:
             self.game_over = True
+            self.save_profile_progress()
 
     def check_stage_exit(self):
         all_coins_collected = all(
@@ -350,13 +430,14 @@ class Game:
         self.add_score(SCORE_WORLD_CLEAR)
         if self.stage_number == len(PYTHON_CHALLENGES):
             self.add_score(SCORE_GAME_COMPLETE)
+        self.worlds_cleared += 1
         self.stage_points = self.score - self.stage_start_score
         self.stage_summary_open = True
+        self.save_profile_progress()
 
     def continue_after_stage_summary(self):
         """Load the next world after the player has read the score card."""
         self.stage_summary_open = False
-        self.worlds_cleared += 1
 
         if self.stage_number >= len(PYTHON_CHALLENGES):
             self.game_won = True
@@ -1050,9 +1131,16 @@ class Game:
 
         if not self.started:
             if self.show_world_map:
-                self.ui.draw_world_map(self.screen)
+                self.ui.draw_world_map(
+                    self.screen, self.profile_name, self.profile_data
+                )
             else:
-                self.ui.draw_start(self.screen)
+                preview_name = self.profile_name_input.strip()
+                self.ui.draw_start(
+                    self.screen,
+                    preview_name,
+                    self.profile_preview,
+                )
         elif self.game_over:
             self.ui.draw_game_over(
                 self.screen,
