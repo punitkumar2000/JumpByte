@@ -1,3 +1,20 @@
 {
-  "best_score": 6750
+  "best_score": 6750,
+  "players": {
+    "sneha": {
+      "player_name": "Sneha",
+      "best_score": 2500,
+      "best_worlds_cleared": 1,
+      "last_questions_asked": 2,
+      "last_questions_correct": 2,
+      "last_score": 2500,
+      "concepts_learned": [
+        "Conditionals",
+        "Dictionaries",
+        "Lists",
+        "Strings",
+        "Tuples"
+      ]
+    }
+  }
 }

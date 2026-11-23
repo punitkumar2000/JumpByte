@@ -163,8 +163,9 @@ class UI:
         shade.fill((10, 16, 32, 15))
         surface.blit(shade, (0, 0))
 
-    def draw_world_map(self, surface):
+    def draw_world_map(self, surface, player_name="", profile=None):
         self._draw_animated_background(surface, self.menu_background, 0.5)
+        profile = profile or {}
 
         title = self.subtitle_font.render("YOUR JOURNEY", True, WHITE)
         subtitle = self.small_font.render(
@@ -174,6 +175,17 @@ class UI:
         )
         surface.blit(title, title.get_rect(center=(surface.get_width() // 2, 72)))
         surface.blit(subtitle, subtitle.get_rect(center=(surface.get_width() // 2, 108)))
+
+        saved_progress = self.small_font.render(
+            f"Welcome, {player_name}   •   Best score: {profile.get('best_score', 0):,}"
+            f"   •   Worlds cleared: {profile.get('best_worlds_cleared', 0)}/5",
+            True,
+            GOLD,
+        )
+        surface.blit(
+            saved_progress,
+            saved_progress.get_rect(center=(surface.get_width() // 2, 145)),
+        )
 
         worlds = [
             ("01", "Green Meadow", "START HERE"),
@@ -235,7 +247,7 @@ class UI:
             )
 
         hint = self.font.render(
-            "Press ENTER to begin  •  ESC to return",
+            "ENTER: begin adventure  •  N: switch player  •  ESC: back",
             True,
             GOLD,
         )
@@ -244,8 +256,9 @@ class UI:
             hint.get_rect(center=(surface.get_width() // 2, 430)),
         )
 
-    def draw_start(self, surface):
+    def draw_start(self, surface, player_name="", profile=None):
         self._draw_animated_background(surface, self.menu_background)
+        profile = profile or {}
 
         # Small decorative heading
         pygame.draw.line(surface, MINT, (88, 112), (140, 112), 4)
@@ -267,7 +280,7 @@ class UI:
         )
         surface.blit(subtitle, (90, 236))
 
-        # Bright outline button, with no dark fill or shadow
+        # Player name field uses a bright outline so it stays readable on the art.
         button_rect = pygame.Rect(88, 294, 390, 54)
         pygame.draw.rect(
             surface,
@@ -277,27 +290,50 @@ class UI:
             border_radius=16,
         )
 
-        pulse = 210 + round(
-            45 * (math.sin(pygame.time.get_ticks() / 320) + 1) / 2
+        field_text = (
+            f"PLAYER: {player_name}  |"
+            if player_name
+            else "TYPE YOUR NAME, THEN PRESS ENTER"
         )
-        button_text = self.font.render(
-            "PRESS ENTER TO EXPLORE",
-            True,
-            (255, 232, 160),
-        )
-        button_text.set_alpha(pulse)
+        button_text = self.font.render(field_text, True, (255, 232, 160))
         surface.blit(
             button_text,
             button_text.get_rect(center=button_rect.center),
         )
 
+        if player_name:
+            topics = profile.get("concepts_learned", [])
+            topic_names = ", ".join(topics[:4]) if topics else "none yet"
+            if len(topics) > 4:
+                topic_names += ", and more"
+            progress_text = (
+                f"BEST SCORE: {profile.get('best_score', 0):,}"
+                f"    WORLDS CLEARED: {profile.get('best_worlds_cleared', 0)}/5"
+            )
+            quiz_text = (
+                f"LAST QUIZ: {profile.get('last_questions_correct', 0)}/"
+                f"{profile.get('last_questions_asked', 0)}"
+                f"    TOPICS: {topic_names}"
+            )
+        else:
+            progress_text = "Your score and learning progress will be saved under this name."
+            quiz_text = "Use the same name next time to view your saved progress."
+
+        for message, y in ((progress_text, 357), (quiz_text, 378)):
+            line = self.small_font.render(message, True, WHITE)
+            shadow = self.small_font.render(message, True, (5, 12, 25))
+            shadow.set_alpha(190)
+            rect = line.get_rect(topleft=(90, y))
+            surface.blit(shadow, rect.move(1, 2))
+            surface.blit(line, rect)
+
         # Compact centered controls remain clear without competing with the rat.
         label_font = self.menu_control_font
         center_x = surface.get_width() // 2
         labels = [
-            ("MOVE: A / D or arrows    JUMP: SPACE / W", 365),
-            ("PAUSE: P    FIRE: F after blue power-up", 395),
-            ("COINS • PYTHON GATES • REACH THE FLAG", 425),
+            ("MOVE: A / D or arrows    JUMP: SPACE / W", 414),
+            ("PAUSE: P    FIRE: F after blue power-up", 438),
+            ("COINS • PYTHON GATES • REACH THE FLAG", 462),
         ]
 
         for message, y in labels:
