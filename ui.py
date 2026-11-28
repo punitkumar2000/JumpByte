@@ -4,7 +4,7 @@ import pygame
 import math
 from sprites import draw_frame, load_frames
 from pathlib import Path
-from settings import MAX_LIVES
+from settings import MAX_LIVES, TOTAL_STAGES
 
 
 WHITE = (247, 250, 255)
@@ -52,7 +52,7 @@ class UI:
     ):
         self._panel(surface, pygame.Rect(16, 12, surface.get_width() - 32, 68), radius=16)
 
-        label = self.small_font.render(f"WORLD {stage_number:02d}  /  05", True, MINT)
+        label = self.small_font.render(f"WORLD {stage_number:02d}  /  {TOTAL_STAGES:02d}", True, MINT)
         name = self.font.render(stage_name, True, WHITE)
         surface.blit(label, (30, 19))
         surface.blit(name, (30, 42))
@@ -169,92 +169,77 @@ class UI:
 
         title = self.subtitle_font.render("YOUR JOURNEY", True, WHITE)
         subtitle = self.small_font.render(
-            "Collect every coin to travel through the five worlds",
+            f"Collect every coin to travel through {TOTAL_STAGES} worlds",
             True,
             MINT,
         )
-        surface.blit(title, title.get_rect(center=(surface.get_width() // 2, 72)))
-        surface.blit(subtitle, subtitle.get_rect(center=(surface.get_width() // 2, 108)))
+        surface.blit(title, title.get_rect(center=(surface.get_width() // 2, 68)))
+        surface.blit(subtitle, subtitle.get_rect(center=(surface.get_width() // 2, 101)))
 
         saved_progress = self.small_font.render(
             f"Welcome, {player_name}   •   Best score: {profile.get('best_score', 0):,}"
-            f"   •   Worlds cleared: {profile.get('best_worlds_cleared', 0)}/5",
+            f"   •   Worlds cleared: {profile.get('best_worlds_cleared', 0)}/{TOTAL_STAGES}",
             True,
             GOLD,
         )
         surface.blit(
             saved_progress,
-            saved_progress.get_rect(center=(surface.get_width() // 2, 145)),
+            saved_progress.get_rect(center=(surface.get_width() // 2, 135)),
         )
 
+        world_names = [
+            "Green Meadow", "Moonlit Cave", "Sunset Castle", "Frostfall Peaks",
+            "Skyforge Citadel", "Ember Dunes", "Coral Reef", "Clockwork Factory",
+            "Cloud Kingdom", "Python Core",
+        ]
         worlds = [
-            ("01", "Green Meadow", "START HERE"),
-            ("02", "Moonlit Cave", "UP NEXT"),
-            ("03", "Sunset Castle", "UP NEXT"),
-            ("04", "Frostfall Peaks", "UP NEXT"),
-            ("05", "Skyforge Citadel", "FINAL WORLD"),
+            (f"{number:02d}", name,
+             "START HERE" if number == 1 else
+             "FINAL WORLD" if number == TOTAL_STAGES else "UP NEXT")
+            for number, name in enumerate(world_names, start=1)
         ]
 
-        card_width = 148
-        card_height = 150
-        gap = 24
+        card_width, card_height, gap = 145, 102, 14
         total_width = 5 * card_width + 4 * gap
         start_x = (surface.get_width() - total_width) // 2
-        card_y = 190
-        centers = []
+        first_row_y, row_gap = 166, 15
+        centers = [start_x + index * (card_width + gap) + card_width // 2 for index in range(5)]
 
-        for index in range(5):
-            x = start_x + index * (card_width + gap)
-            centers.append(x + card_width // 2)
-
-        for index in range(4):
-            pygame.draw.line(
-                surface,
-                (133, 245, 194),
-                (centers[index] + 46, card_y + 55),
-                (centers[index + 1] - 46, card_y + 55),
-                4,
-            )
+        for row in range(2):
+            row_y = first_row_y + row * (card_height + row_gap)
+            for index in range(4):
+                pygame.draw.line(
+                    surface, (133, 245, 194),
+                    (centers[index] + 42, row_y + 36),
+                    (centers[index + 1] - 42, row_y + 36), 3,
+                )
 
         for index, (number, name, status) in enumerate(worlds):
-            x = start_x + index * (card_width + gap)
+            row, column = divmod(index, 5)
+            x = start_x + column * (card_width + gap)
+            card_y = first_row_y + row * (card_height + row_gap)
             rect = pygame.Rect(x, card_y, card_width, card_height)
             active = index == 0
-
             color = (22, 55, 68, 235) if active else (22, 31, 55, 220)
-            self._panel(surface, rect, color=color, radius=18)
+            self._panel(surface, rect, color=color, radius=16)
 
-            circle_color = MINT if active else (120, 135, 160)
-            pygame.draw.circle(surface, circle_color, (centers[index], card_y + 55), 28)
-
+            center = (centers[column], card_y + 34)
+            pygame.draw.circle(surface, MINT if active else (120, 135, 160), center, 21)
             number_text = self.font.render(number, True, INK)
-            surface.blit(
-                number_text,
-                number_text.get_rect(center=(centers[index], card_y + 55)),
-            )
+            surface.blit(number_text, number_text.get_rect(center=center))
 
             name_text = self.small_font.render(name, True, WHITE)
-            surface.blit(
-                name_text,
-                name_text.get_rect(center=(centers[index], card_y + 105)),
-            )
-
+            surface.blit(name_text, name_text.get_rect(center=(centers[column], card_y + 68)))
             status_color = GOLD if active else (180, 194, 218)
             status_text = self.small_font.render(status, True, status_color)
-            surface.blit(
-                status_text,
-                status_text.get_rect(center=(centers[index], card_y + 130)),
-            )
+            surface.blit(status_text, status_text.get_rect(center=(centers[column], card_y + 89)))
 
         hint = self.font.render(
             "ENTER: begin adventure  •  N: switch player  •  ESC: back",
             True,
             GOLD,
         )
-        surface.blit(
-            hint,
-            hint.get_rect(center=(surface.get_width() // 2, 430)),
-        )
+        surface.blit(hint, hint.get_rect(center=(surface.get_width() // 2, 424)))
 
     def draw_start(self, surface, player_name="", profile=None):
         self._draw_animated_background(surface, self.menu_background)
@@ -308,7 +293,7 @@ class UI:
                 topic_names += ", and more"
             progress_text = (
                 f"BEST SCORE: {profile.get('best_score', 0):,}"
-                f"    WORLDS CLEARED: {profile.get('best_worlds_cleared', 0)}/5"
+                f"    WORLDS CLEARED: {profile.get('best_worlds_cleared', 0)}/{TOTAL_STAGES}"
             )
             quiz_text = (
                 f"LAST QUIZ: {profile.get('last_questions_correct', 0)}/"
@@ -556,7 +541,7 @@ class UI:
             "YOUR LEARNING JOURNEY", True, MINT
         )
         progress = self.font.render(
-            f"Worlds cleared: {worlds_cleared}/5    •    Python answers: {questions_correct}/{questions_asked}",
+            f"Worlds cleared: {worlds_cleared}/{TOTAL_STAGES}    •    Python answers: {questions_correct}/{questions_asked}",
             True,
             WHITE,
         )
@@ -623,7 +608,7 @@ class UI:
         surface.blit(panel, (center_x - width // 2, 102))
 
         label = self.small_font.render(
-            f"WORLD {world_number:02d}  /  05", True, MINT
+            f"WORLD {world_number:02d}  /  {TOTAL_STAGES:02d}", True, MINT
         )
         title = self.font.render(world_name, True, WHITE)
         label.set_alpha(alpha)

@@ -1,12 +1,12 @@
 # JumpByte
 
-JumpByte is an original 2D platformer built with Python and Pygame. Play as a rat, explore five themed worlds, collect coins, use speed boosts, stomp enemy cats, and defeat the final boss.
+JumpByte is an original 2D platformer built with Python and Pygame. Play as a rat, explore ten themed worlds, collect coins, use speed boosts, stomp enemy cats, and defeat the final boss.
 
 The game code, level layouts, scenery, effects, and sound effects are made for JumpByte. Rat and cat animations are loaded from the sprite assets in `assets/characters/`. The game does not use Mario characters, names, sprites, or sounds.
 
 ## Features
 
-- Five worlds: Green Meadow, Moonlit Cave, Sunset Castle, Frostfall Peaks, and Skyforge Citadel
+- Ten worlds: Green Meadow, Moonlit Cave, Sunset Castle, Frostfall Peaks, Skyforge Citadel, Ember Dunes, Coral Reef, Clockwork Factory, Cloud Kingdom, and Python Core
 - Rat character with movement, jumping, gravity, and platform collisions
 - Cat enemies that patrol and fire projectiles
 - Stomping attacks, including a health-based final boss with an enraged phase
@@ -33,7 +33,12 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 2. **Moonlit Cave** — collect every coin and avoid the patrolling cats.
 3. **Sunset Castle** — collect every coin and reach the exit.
 4. **Frostfall Peaks** — collect every coin and reach the exit.
-5. **Skyforge Citadel** — collect every coin, defeat the final boss, and reach the exit to win.
+5. **Skyforge Citadel** — collect every coin, defeat its boss, and reach the exit.
+6. **Ember Dunes** — cross desert platforms, avoid hazards, and collect every coin.
+7. **Coral Reef** — travel across underwater platforms and a moving lift.
+8. **Clockwork Factory** — navigate factory platforms and avoid floor hazards.
+9. **Cloud Kingdom** — cross floating islands and moving platforms.
+10. **Python Core** — collect every coin, defeat the final boss, and reach the exit to win.
 
 ## Controls
 
@@ -90,7 +95,7 @@ python main.py
 | `objects.py` | Platforms, moving platforms, coins, power-ups, cheese drops, and hazards |
 | `sprites.py` | Loads, aligns, scales, and draws character animation frames |
 | `effects.py` | Particle bursts for pickups, jumps, damage, and stomps |
-| `levels.py` | Layouts and data for the five worlds |
+| `levels.py` | Layouts and data for all ten worlds |
 | `ui.py` | Start screen, HUD, pause, game-over, and win screens |
 | `sound_effects.py` | Generated sound effects and mute control |
 | `save_data.py` | Loads and saves the overall best score and named player profiles |

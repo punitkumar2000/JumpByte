@@ -8,6 +8,7 @@ WINDOW_TITLE = "JumpByte - Python Platform Adventure"
 # Change these values to adjust lives, movement, quiz length, and score.
 # If WORLD_WIDTH changes a lot, adjust the world layouts in levels.py too.
 WORLD_WIDTH = 1600
+TOTAL_STAGES = 10
 PLAYER_START_POSITION = (60, 400)
 MAX_LIVES = 3
 QUIZ_QUESTIONS_PER_WORLD = 2

@@ -11,6 +11,11 @@ from levels import (
     build_stage_three,
     build_stage_four,
     build_stage_five,
+    build_stage_six,
+    build_stage_seven,
+    build_stage_eight,
+    build_stage_nine,
+    build_stage_ten,
 )
 from objects import CheeseDrop, PlayerShot
 from player import Player
@@ -40,6 +45,7 @@ from settings import (
     SCREEN_WIDTH,
     SHOT_COOLDOWN_SECONDS,
     SPEED_BOOST_FRAMES,
+    TOTAL_STAGES,
     WORLD_WIDTH,
     WINDOW_TITLE,
 )
@@ -428,7 +434,7 @@ class Game:
             return
 
         self.add_score(SCORE_WORLD_CLEAR)
-        if self.stage_number == len(PYTHON_CHALLENGES):
+        if self.stage_number == TOTAL_STAGES:
             self.add_score(SCORE_GAME_COMPLETE)
         self.worlds_cleared += 1
         self.stage_points = self.score - self.stage_start_score
@@ -439,7 +445,7 @@ class Game:
         """Load the next world after the player has read the score card."""
         self.stage_summary_open = False
 
-        if self.stage_number >= len(PYTHON_CHALLENGES):
+        if self.stage_number >= TOTAL_STAGES:
             self.game_won = True
             return
 
@@ -449,6 +455,11 @@ class Game:
             build_stage_three,
             build_stage_four,
             build_stage_five,
+            build_stage_six,
+            build_stage_seven,
+            build_stage_eight,
+            build_stage_nine,
+            build_stage_ten,
         )
         self.stage_number += 1
         self.stage = stage_builders[self.stage_number - 1]()
@@ -886,7 +897,7 @@ class Game:
                 [(1390, 170), (1335, 235), (1385, 218), (1420, 245)],
             )
 
-        else:
+        elif self.stage_number == 5:
             # Skyforge Citadel: starry sky and floating towers
             pygame.draw.circle(world, (245, 205, 130), (1320, 175), 52)
             pygame.draw.circle(world, (255, 225, 165), (1320, 175), 38)
@@ -920,6 +931,64 @@ class Game:
             pygame.draw.rect(world, (255, 215, 115), (535, 315, 22, 35))
             pygame.draw.rect(world, (130, 225, 255), (643, 365, 18, 30))
 
+        elif self.stage_number == 6:
+            # Ember Dunes: layered orange dunes and desert cacti.
+            pygame.draw.circle(world, (255, 220, 135), (1320, 150), 54)
+            pygame.draw.ellipse(world, (205, 125, 90), (-160, 350, 750, 220))
+            pygame.draw.ellipse(world, (220, 145, 95), (380, 370, 780, 220))
+            pygame.draw.ellipse(world, (190, 105, 85), (980, 345, 800, 240))
+            for x, y in ((250, 405), (740, 420), (1250, 400)):
+                pygame.draw.rect(world, (55, 125, 90), (x, y, 14, 80), border_radius=7)
+                pygame.draw.rect(world, (55, 125, 90), (x - 17, y + 20, 18, 12), border_radius=6)
+                pygame.draw.rect(world, (55, 125, 90), (x + 12, y + 38, 18, 12), border_radius=6)
+
+        elif self.stage_number == 7:
+            # Coral Reef: ocean floor, sea plants, and distant coral.
+            pygame.draw.ellipse(world, (40, 135, 165), (-120, 385, 800, 200))
+            pygame.draw.ellipse(world, (35, 115, 155), (650, 390, 900, 190))
+            for x, y, color in ((170, 470, (255, 115, 155)), (500, 465, (245, 165, 95)), (980, 470, (225, 110, 190)), (1430, 465, (255, 145, 125))):
+                pygame.draw.line(world, color, (x, y), (x, y - 48), 7)
+                pygame.draw.line(world, color, (x, y - 25), (x - 20, y - 42), 6)
+                pygame.draw.line(world, color, (x, y - 32), (x + 18, y - 50), 6)
+            for x, y in ((280, 180), (690, 255), (1170, 145), (1500, 280)):
+                pygame.draw.circle(world, (135, 230, 245), (x, y), 8, 2)
+
+        elif self.stage_number == 8:
+            # Clockwork Factory: chimneys, windows, and gear-like wheels.
+            for x, y, width, height in ((180, 285, 180, 205), (410, 235, 230, 255), (710, 310, 190, 180), (1010, 260, 240, 230)):
+                pygame.draw.rect(world, (65, 80, 105), (x, y, width, height))
+            for x, top in ((220, 200), (490, 150), (790, 235), (1080, 175)):
+                pygame.draw.rect(world, (80, 95, 120), (x, top, 48, 490 - top))
+                pygame.draw.rect(world, (105, 120, 145), (x - 6, top - 12, 60, 14))
+            for x, y in ((320, 390), (570, 390), (820, 400), (1160, 390)):
+                pygame.draw.circle(world, (225, 180, 90), (x, y), 27, 5)
+                pygame.draw.circle(world, (225, 180, 90), (x, y), 7)
+            for x, y in ((455, 290), (525, 290), (1080, 315), (1150, 315)):
+                pygame.draw.rect(world, (255, 215, 120), (x, y, 22, 32), border_radius=4)
+
+        elif self.stage_number == 9:
+            # Cloud Kingdom: floating islands and soft cloud banks.
+            for x, y, width in ((40, 335, 360), (520, 385, 420), (1100, 340, 430)):
+                pygame.draw.ellipse(world, (225, 245, 255), (x, y, width, 90))
+                pygame.draw.ellipse(world, (205, 232, 250), (x + width // 3, y - 28, width // 2, 90))
+            for x, y in ((300, 250), (790, 220), (1280, 255)):
+                pygame.draw.ellipse(world, (105, 150, 190), (x, y, 180, 32))
+                pygame.draw.polygon(world, (95, 135, 180), ((x + 25, y + 18), (x + 155, y + 18), (x + 110, y + 88), (x + 70, y + 88)))
+                pygame.draw.ellipse(world, (100, 185, 125), (x + 16, y - 9, 148, 20))
+
+        else:
+            # Python Core: a glowing final gate surrounded by code-like runes.
+            for index in range(18):
+                x = 70 + index * 88
+                y = 85 + (index * 53) % 190
+                color = (120, 175, 235) if index % 2 else (185, 135, 245)
+                pygame.draw.line(world, color, (x, y), (x + 24, y), 3)
+                pygame.draw.line(world, color, (x + 12, y - 8), (x + 12, y + 8), 2)
+            pygame.draw.circle(world, (255, 210, 105), (1260, 230), 100, 5)
+            pygame.draw.circle(world, (130, 210, 255), (1260, 230), 74, 3)
+            pygame.draw.rect(world, (85, 70, 145), (1210, 330, 100, 160))
+            pygame.draw.polygon(world, (115, 95, 180), ((1190, 330), (1330, 330), (1260, 265)))
+
     def prepare_background(self):
         """Cache the detailed scenery so it scrolls behind the gameplay layer."""
         self.background_surface = pygame.Surface((WORLD_WIDTH, SCREEN_HEIGHT))
@@ -941,7 +1010,7 @@ class Game:
                     pygame.draw.circle(surface, cloud, (x + 20, y + 9), 18)
                     pygame.draw.circle(surface, cloud, (x + 43, y + 7), 22)
 
-        elif self.stage_number in (2, 5):
+        elif self.stage_number in (2, 5, 10):
             stars = [
                 (70, 82), (190, 145), (310, 66), (455, 115), (585, 58),
                 (730, 136), (860, 78), (1010, 125), (1180, 60),
@@ -966,6 +1035,12 @@ class Game:
                 x = int((index * 97 + math.sin(time + index) * 18 - time * speed) % SCREEN_WIDTH)
                 y = int((index * 61 + time * speed * 1.35) % SCREEN_HEIGHT)
                 pygame.draw.line(surface, (238, 250, 255), (x, y), (x - 2, y + 6), 2)
+
+        elif self.stage_number in (7, 9):
+            for index in range(12):
+                x = (index * 89 + int(time * 18)) % SCREEN_WIDTH
+                y = 120 + (index * 37) % 300
+                pygame.draw.circle(surface, (155, 235, 245), (x, y), 3 + index % 3, 1)
 
     def draw(self):
         self.screen.fill(self.stage["info"]["background"])
@@ -1171,7 +1246,7 @@ class Game:
                 self.stage_questions_correct,
                 self.stage_questions_asked,
                 sorted(self.stage_learning_concepts),
-                is_final=self.stage_number == len(PYTHON_CHALLENGES),
+                is_final=self.stage_number == TOTAL_STAGES,
             )
         elif self.paused:
             self.ui.draw_pause(self.screen)
