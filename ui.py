@@ -49,10 +49,16 @@ class UI:
         total_coins=0, progress=0.0, stage_number=1, sound_muted=False,
         score=0,
         bullet_timer=0.0,
+        accent_color=None,
     ):
+        accent_color = accent_color or MINT
         self._panel(surface, pygame.Rect(16, 12, surface.get_width() - 32, 68), radius=16)
 
-        label = self.small_font.render(f"WORLD {stage_number:02d}  /  {TOTAL_STAGES:02d}", True, MINT)
+        label = self.small_font.render(
+            f"WORLD {stage_number:02d}  /  {TOTAL_STAGES:02d}",
+            True,
+            accent_color,
+        )
         name = self.font.render(stage_name, True, WHITE)
         surface.blit(label, (30, 19))
         surface.blit(name, (30, 42))
@@ -80,7 +86,7 @@ class UI:
         fill = bar.copy()
         fill.width = round(bar.width * max(0.0, min(1.0, progress)))
         if fill.width:
-            pygame.draw.rect(surface, (102, 225, 171), fill, border_radius=5)
+            pygame.draw.rect(surface, accent_color, fill, border_radius=5)
 
         controls = self.small_font.render(
             "A/D MOVE   SPACE JUMP   P PAUSE", True, WHITE
@@ -675,28 +681,49 @@ class UI:
         hint = self.small_font.render("W/S or Up/Down   •   ENTER Choose   •   P/ESC Resume", True, MINT)
         surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.bottom - 22)))
 
-    def draw_world_intro(self, surface, world_number, world_name, timer):
+    def draw_world_intro(
+        self, surface, world_number, world_name, timer, accent_color=None
+    ):
         """Brief world label that fades in and out without blocking play."""
+        accent_color = accent_color or MINT
         duration = 1.8
         fade = min(1.0, timer / 0.28, (duration - timer) / 0.28)
         alpha = max(0, min(210, round(210 * fade)))
-        width, height = 430, 82
+        width, height = 460, 100
+        top = 92
         panel = pygame.Surface((width, height), pygame.SRCALPHA)
         pygame.draw.rect(
-            panel, (18, 28, 48, alpha), panel.get_rect(), border_radius=18
+            panel, (18, 28, 48, alpha), panel.get_rect(), border_radius=20
         )
         pygame.draw.rect(
-            panel, (255, 255, 255, round(55 * fade)),
-            panel.get_rect(), width=1, border_radius=18,
+            panel, (*accent_color, round(90 * fade)),
+            panel.get_rect(), width=2, border_radius=20,
         )
         center_x = surface.get_width() // 2
-        surface.blit(panel, (center_x - width // 2, 102))
 
+        # Ten small lights show how far the player has travelled.
+        segment_count = max(1, TOTAL_STAGES)
+        gap = 5
+        segment_width = 22
+        total_width = segment_count * segment_width + (segment_count - 1) * gap
+        left = (width - total_width) // 2
+        y = 82
+        for index in range(segment_count):
+            rect = pygame.Rect(
+                left + index * (segment_width + gap), y, segment_width, 5
+            )
+            if index < world_number:
+                color = (*accent_color, round(230 * fade))
+            else:
+                color = (220, 230, 245, round(60 * fade))
+            pygame.draw.rect(panel, color, rect, border_radius=3)
+
+        surface.blit(panel, (center_x - width // 2, top))
         label = self.small_font.render(
-            f"WORLD {world_number:02d}  /  {TOTAL_STAGES:02d}", True, MINT
+            f"WORLD {world_number:02d}  /  {TOTAL_STAGES:02d}", True, accent_color
         )
         title = self.font.render(world_name, True, WHITE)
         label.set_alpha(alpha)
         title.set_alpha(alpha)
-        surface.blit(label, label.get_rect(center=(center_x, 125)))
-        surface.blit(title, title.get_rect(center=(center_x, 155)))
+        surface.blit(label, label.get_rect(center=(center_x, top + 23)))
+        surface.blit(title, title.get_rect(center=(center_x, top + 54)))

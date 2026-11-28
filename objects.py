@@ -11,33 +11,56 @@ class Platform:
     def __init__(self, x, y, width, height=24):
         self.rect = pygame.Rect(x, y, width, height)
 
-    def draw(self, surface):
-        pygame.draw.rect(surface, (83, 50, 38), self.rect, border_radius=4)
+    def draw(self, surface, theme=None):
+        """Draw a softly shaded platform using the current world's colors."""
+        theme = theme or {}
+        top_color = theme.get("top", GRASS)
+        highlight = theme.get("highlight", (145, 225, 125))
+        soil_color = theme.get("soil", DIRT)
+        shadow_color = theme.get("shadow", (83, 50, 38))
+        detail_color = theme.get("detail", (115, 75, 48))
+
+        pygame.draw.ellipse(
+            surface, (18, 22, 34, 55),
+            (self.rect.x + 3, self.rect.bottom - 3, max(1, self.rect.width - 6), 9),
+        )
+        pygame.draw.rect(surface, shadow_color, self.rect, border_radius=7)
         pygame.draw.rect(
-            surface, DIRT,
-            (self.rect.x, self.rect.y + 5, self.rect.width, self.rect.height - 5),
-            border_radius=3,
+            surface,
+            soil_color,
+            (
+                self.rect.x + 1,
+                self.rect.y + 6,
+                max(1, self.rect.width - 2),
+                max(1, self.rect.height - 7),
+            ),
+            border_radius=6,
         )
 
-        # Small marks on the dirt
-        for x in range(self.rect.left + 8, self.rect.right - 4, 28):
-            y = self.rect.top + 16 + ((x // 28) % 2) * 7
-            pygame.draw.circle(surface, (115, 75, 48), (x, y), 2)
+        # Small pebble marks give the front face a little texture.
+        for x in range(self.rect.left + 12, self.rect.right - 5, 32):
+            y = self.rect.top + 15 + ((x // 32) % 2) * 5
+            pygame.draw.ellipse(surface, detail_color, (x, y, 6, 3))
 
-        # Grass strip and blades
         pygame.draw.rect(
-            surface, GRASS,
-            (self.rect.x, self.rect.y, self.rect.width, 8),
-            border_radius=3,
+            surface,
+            top_color,
+            (self.rect.x, self.rect.y, self.rect.width, min(11, self.rect.height)),
+            border_radius=6,
         )
         pygame.draw.line(
-            surface, (145, 225, 125),
-            (self.rect.left + 4, self.rect.top + 1),
-            (self.rect.right - 4, self.rect.top + 1), 2,
+            surface,
+            highlight,
+            (self.rect.left + 6, self.rect.top + 2),
+            (self.rect.right - 6, self.rect.top + 2),
+            2,
         )
-        for x in range(self.rect.left + 9, self.rect.right - 5, 28):
-            blade_y = self.rect.y + 7 + int(math.sin(pygame.time.get_ticks() / 500 + x) * 1.5)
-            pygame.draw.line(surface, (95, 205, 105), (x, blade_y), (x + 3, blade_y - 5), 1)
+        for x in range(self.rect.left + 13, self.rect.right - 7, 38):
+            sway = int(math.sin(pygame.time.get_ticks() / 650 + x) * 1.2)
+            pygame.draw.line(
+                surface, highlight,
+                (x, self.rect.top + 8), (x + 3, self.rect.top + 4 + sway), 1,
+            )
 
 
 class Coin:
@@ -157,13 +180,20 @@ class MovingPlatform:
             self.rect.bottom = self.bottom_y
             self.direction = -1
 
-    def draw(self, surface):
-        pygame.draw.rect(surface, (95, 190, 210), self.rect, border_radius=8)
+    def draw(self, surface, theme=None):
+        theme = theme or {}
+        moving_color = theme.get("moving", (95, 190, 210))
+        highlight = theme.get("highlight", (205, 245, 245))
+        accent = theme.get("accent", (120, 220, 235))
+        pygame.draw.rect(surface, (28, 35, 56), self.rect.inflate(4, 4), border_radius=9)
+        pygame.draw.rect(surface, moving_color, self.rect, border_radius=8)
         pygame.draw.rect(
-            surface, (205, 245, 245),
+            surface, highlight,
             (self.rect.x, self.rect.y, self.rect.width, 6),
             border_radius=4,
         )
+        for x in (self.rect.left + 10, self.rect.right - 10):
+            pygame.draw.circle(surface, accent, (x, self.rect.centery + 2), 3)
 
 class CheeseDrop:
     """A small bonus pickup that bounces out when an enemy is defeated."""

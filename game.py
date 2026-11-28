@@ -25,6 +25,7 @@ from settings import (
     EXIT_REACHED_X,
     FIRE_POWER_SECONDS,
     FPS,
+    LEVEL_THEMES,
     MAX_LIVES,
     PLAYER_START_POSITION,
     QUIZ_GATE_X,
@@ -1165,12 +1166,13 @@ class Game:
         if self.started:
             world = self.world_surface
             world.fill((0, 0, 0, 0))
+            platform_theme = LEVEL_THEMES.get(self.stage_number, {})
 
             for platform in self.stage["platforms"]:
-                platform.draw(world)
+                platform.draw(world, platform_theme)
 
             for platform in self.stage.get("moving_platforms", []):
-                platform.draw(world)
+                platform.draw(world, platform_theme)
 
             for hazard in self.stage.get("hazards", []):
                 hazard.draw(world)
@@ -1258,6 +1260,7 @@ class Game:
                 sound_muted=self.sounds.muted,
                 score=self.score,
                 bullet_timer=self.bullet_power_timer,
+                accent_color=platform_theme.get("accent"),
             )
 
             # Exit par coins baaki hon toh player ko reason dikhega.
@@ -1299,6 +1302,7 @@ class Game:
                     self.stage_number,
                     self.stage["info"]["name"],
                     self.stage_intro_timer,
+                    accent_color=LEVEL_THEMES.get(self.stage_number, {}).get("accent"),
                 )
             if (
                 self.started

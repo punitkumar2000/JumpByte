@@ -3,15 +3,17 @@
   "players": {
     "sneha": {
       "player_name": "sneha",
-      "best_score": 2600,
+      "best_score": 3200,
       "best_worlds_cleared": 1,
-      "last_questions_asked": 2,
-      "last_questions_correct": 2,
-      "last_score": 100,
+      "last_questions_asked": 4,
+      "last_questions_correct": 4,
+      "last_score": 3200,
       "concepts_learned": [
+        "Booleans",
         "Classes",
         "Conditionals",
         "Dictionaries",
+        "Jumping",
         "Lists",
         "Strings",
         "Tuples"
