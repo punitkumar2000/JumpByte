@@ -23,6 +23,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - Cheese bonus pickups that bounce out when cats or the boss are defeated
 - A blue fire power-up in Moonlit Cave; press `F` to shoot while it is active
 - Two different random Python questions at each world exit, with hints and answer explanations
+- One randomized mid-world code-completion checkpoint per world; wrong answers show a hint and correct answers resume play
 - A world score recap after the quiz and a learning summary on both win and game-over screens
 - Easy-to-change lives, world size, quiz length, score rewards, and enemy tuning in `settings.py`
 - Named local player profiles that show each player's best score, worlds cleared, quiz result, and learned Python topics

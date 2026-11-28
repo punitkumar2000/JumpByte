@@ -58,7 +58,7 @@ from save_data import (
     save_best_score,
     save_player_profile,
 )
-from python_challenges import PYTHON_CHALLENGES
+from python_challenges import PYTHON_CHALLENGES, PYTHON_CODE_CHALLENGES
 
 
 class Game:
@@ -133,10 +133,20 @@ class Game:
         self.challenge_answered = False
         self.challenge_feedback = ""
         self.active_challenge = None
+        self.reset_code_checkpoint()
         self.camera_x = 0
         self.particles = ParticleSystem()
         self.camera_shake_timer = 0
         self.prepare_background()
+
+    def reset_code_checkpoint(self):
+        """Choose one random code-question point for the current world."""
+        self.code_checkpoint_x = random.randint(WORLD_WIDTH // 4, WORLD_WIDTH * 3 // 4)
+        self.code_checkpoint_done = False
+        self.code_challenge_open = False
+        self.code_challenge_answered = False
+        self.code_challenge_feedback = ""
+        self.active_code_challenge = None
 
     def add_score(self, points):
         """Award points and persist a new personal best immediately."""
@@ -247,6 +257,46 @@ class Game:
             self.challenge_open = True
             self.save_profile_progress()
 
+    def open_random_code_checkpoint(self):
+        """Pause once in this world and ask a short game-code question."""
+        if self.code_checkpoint_done:
+            return
+
+        self.code_checkpoint_done = True
+        question_pool = PYTHON_CODE_CHALLENGES[self.stage_number]
+        challenge = dict(random.choice(question_pool))
+        choices = challenge["choices"][:]
+        correct_choice = choices[challenge["answer"] - 1]
+        random.shuffle(choices)
+        challenge["choices"] = choices
+        challenge["answer"] = choices.index(correct_choice) + 1
+        self.active_code_challenge = challenge
+        self.code_challenge_open = True
+        self.code_challenge_answered = False
+        self.code_challenge_feedback = ""
+        self.questions_asked += 1
+        self.stage_questions_asked += 1
+        self.save_profile_progress()
+
+    def answer_code_challenge(self, choice_number):
+        """Give a hint on a wrong choice and reward a correct answer."""
+        challenge = self.active_code_challenge
+        if challenge is None or self.code_challenge_answered:
+            return
+
+        if choice_number == challenge["answer"]:
+            self.code_challenge_answered = True
+            self.questions_correct += 1
+            self.stage_questions_correct += 1
+            topic = challenge["topic"].title()
+            self.learning_concepts.add(topic)
+            self.stage_learning_concepts.add(topic)
+            self.add_score(SCORE_CORRECT_ANSWER)
+            self.sounds.play_powerup()
+        else:
+            self.code_challenge_feedback = f"Hint: {challenge['hint']}"
+            self.save_profile_progress()
+
     def answer_python_challenge(self, choice_number):
         challenge = self.active_challenge
         if challenge is None:
@@ -306,6 +356,17 @@ class Game:
                     self.profile_name_input.strip()
                 )
             elif event.type == pygame.KEYDOWN:
+                if self.code_challenge_open:
+                    if self.code_challenge_answered:
+                        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                            self.code_challenge_open = False
+                            self.code_challenge_answered = False
+                            self.code_challenge_feedback = ""
+                            self.active_code_challenge = None
+                    elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
+                        self.answer_code_challenge(event.key - pygame.K_0)
+                    continue
+
                 if self.paused:
                     if event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_w, pygame.K_s):
                         self.pause_selection = 1 - self.pause_selection
@@ -380,6 +441,7 @@ class Game:
                     and not self.game_over
                     and not self.game_won
                     and not self.challenge_open
+                    and not self.code_challenge_open
                     and not self.stage_summary_open
                 ):
                     self.paused = not self.paused
@@ -523,6 +585,7 @@ class Game:
         self.challenge_answered = False
         self.challenge_feedback = ""
         self.active_challenge = None
+        self.reset_code_checkpoint()
         self.challenge_questions = []
         self.challenge_question_index = 0
         self.stage_questions_asked = 0
@@ -539,6 +602,7 @@ class Game:
             or self.game_won
             or self.paused
             or self.challenge_open
+            or self.code_challenge_open
             or self.stage_summary_open
         ):
             return
@@ -731,6 +795,13 @@ class Game:
                 self.particles.burst(
                     *powerup.rect.center, (120, 235, 255), 20, 185
                 )
+
+        if (
+            not self.code_checkpoint_done
+            and not self.game_over
+            and self.player.rect.centerx >= self.code_checkpoint_x
+        ):
+            self.open_random_code_checkpoint()
 
         self.check_stage_exit()
 
@@ -1303,6 +1374,13 @@ class Game:
                 answered=self.challenge_answered,
                 question_number=self.challenge_question_index + 1,
                 question_total=len(self.challenge_questions),
+            )
+        if self.code_challenge_open and self.active_code_challenge is not None:
+            self.ui.draw_code_checkpoint(
+                self.screen,
+                self.active_code_challenge,
+                feedback=self.code_challenge_feedback,
+                answered=self.code_challenge_answered,
             )
         pygame.display.flip()
 

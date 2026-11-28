@@ -474,6 +474,69 @@ class UI:
                 hint = self.small_font.render(feedback, True, (255, 190, 150))
                 surface.blit(hint, (rect.x + 30, rect.y + 295))
 
+    def draw_code_checkpoint(self, surface, challenge, feedback="", answered=False):
+        """Pause play and show a short multiple-choice code blank."""
+        shade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        shade.fill((5, 10, 25, 190))
+        surface.blit(shade, (0, 0))
+
+        rect = pygame.Rect(0, 0, 740, 410)
+        rect.center = surface.get_rect().center
+        self._panel(surface, rect, color=(22, 31, 55, 250), radius=24)
+        title = self.subtitle_font.render(
+            f"CODE CHECKPOINT  |  {challenge['topic']}", True, MINT
+        )
+        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 31)))
+
+        question = self.small_font.render(challenge["question"], True, WHITE)
+        surface.blit(question, (rect.x + 32, rect.y + 68))
+
+        code_rect = pygame.Rect(rect.x + 28, rect.y + 99, rect.width - 56, 68)
+        pygame.draw.rect(surface, (9, 17, 34), code_rect, border_radius=12)
+        pygame.draw.rect(surface, (85, 125, 160), code_rect, width=1, border_radius=12)
+        code_lines = challenge["code"].splitlines()
+        code_size = 23
+        code_font = pygame.font.SysFont("monospace", code_size, bold=True)
+        while max(code_font.size(line)[0] for line in code_lines) > code_rect.width - 28:
+            code_size -= 1
+            code_font = pygame.font.SysFont("monospace", code_size, bold=True)
+        line_height = max(23, code_font.get_linesize())
+        code_y = code_rect.centery - len(code_lines) * line_height // 2
+        for line in code_lines:
+            rendered = code_font.render(line, True, GOLD)
+            surface.blit(rendered, rendered.get_rect(center=(code_rect.centerx, code_y)))
+            code_y += line_height
+
+        if answered:
+            result = self.font.render("Correct! The gate is open.", True, MINT)
+            surface.blit(result, (rect.x + 32, rect.y + 187))
+            lines = self._wrap_lines(
+                challenge["explanation"], self.small_font, rect.width - 64
+            )
+            for index, line in enumerate(lines[:3]):
+                text = self.small_font.render(line, True, WHITE)
+                surface.blit(text, (rect.x + 32, rect.y + 226 + index * 24))
+            instruction = self.small_font.render(
+                "Press ENTER to continue playing", True, GOLD
+            )
+            surface.blit(instruction, (rect.x + 32, rect.bottom - 32))
+            return
+
+        for number, choice in enumerate(challenge["choices"], start=1):
+            option = self.font.render(f"{number}.  {choice}", True, WHITE)
+            surface.blit(option, (rect.x + 42, rect.y + 183 + (number - 1) * 39))
+
+        instruction = self.small_font.render(
+            "Choose 1, 2, or 3. A wrong answer gives you a hint.",
+            True,
+            GOLD,
+        )
+        surface.blit(instruction, (rect.x + 32, rect.bottom - 66))
+        if feedback:
+            for index, line in enumerate(self._wrap_lines(feedback, self.small_font, rect.width - 64)[:2]):
+                hint = self.small_font.render(line, True, (255, 190, 150))
+                surface.blit(hint, (rect.x + 32, rect.bottom - 42 + index * 18))
+
     def _wrap_lines(self, text, font, max_width):
         lines = []
         line = ""
