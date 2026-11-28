@@ -125,6 +125,7 @@ class Game:
         self.game_over = False
         self.game_won = False
         self.paused = False
+        self.pause_selection = 1  # Resume is selected by default.
         self.exit_locked = False
         self.challenge_open = False
         self.stage_summary_open = False
@@ -263,10 +264,36 @@ class Game:
             self.challenge_feedback = f"Wrong answer! {challenge['hint']}"
             self.save_profile_progress()
 
+    def return_home(self):
+        """End this run and return to the name-entry home screen."""
+        self.reset_stage()
+        self.started = False
+        self.show_world_map = False
+        self.profile_name_input = self.profile_name
+        self.profile_preview = self.profile_data
+        pygame.key.start_text_input()
+
+    def handle_pause_choice(self):
+        """Apply the selected Home or Resume option."""
+        if self.pause_selection == 0:
+            self.return_home()
+        else:
+            self.paused = False
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif (
+                self.paused
+                and event.type == pygame.MOUSEBUTTONDOWN
+                and event.button == 1
+            ):
+                for index, button in enumerate(self.ui.pause_button_rects(self.screen)):
+                    if button.collidepoint(event.pos):
+                        self.pause_selection = index
+                        self.handle_pause_choice()
+                        break
             elif (
                 event.type == pygame.TEXTINPUT
                 and not self.started
@@ -279,6 +306,15 @@ class Game:
                     self.profile_name_input.strip()
                 )
             elif event.type == pygame.KEYDOWN:
+                if self.paused:
+                    if event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_w, pygame.K_s):
+                        self.pause_selection = 1 - self.pause_selection
+                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        self.handle_pause_choice()
+                    elif event.key in (pygame.K_p, pygame.K_ESCAPE):
+                        self.paused = False
+                    continue
+
                 if self.stage_summary_open:
                     if event.key == pygame.K_RETURN:
                         self.continue_after_stage_summary()
@@ -344,6 +380,7 @@ class Game:
                     and not self.game_over
                     and not self.game_won
                     and not self.challenge_open
+                    and not self.stage_summary_open
                 ):
                     self.paused = not self.paused
                 elif event.key == pygame.K_m and self.started:
@@ -1249,7 +1286,11 @@ class Game:
                 is_final=self.stage_number == TOTAL_STAGES,
             )
         elif self.paused:
-            self.ui.draw_pause(self.screen)
+            self.ui.draw_pause(
+                self.screen,
+                selected_index=self.pause_selection,
+                mouse_pos=pygame.mouse.get_pos(),
+            )
 
 
         if self.challenge_open and self.active_challenge is not None:

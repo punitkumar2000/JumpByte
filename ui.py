@@ -583,12 +583,34 @@ class UI:
             questions_asked, concepts, "Press R to play again",
         )
 
-    def draw_pause(self, surface):
-        rect = self._card(surface, 430, 180)
-        title = self.title_font.render("Paused", True, WHITE)
-        hint = self.font.render("Press P to continue", True, MINT)
-        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 70)))
-        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.y + 125)))
+    def pause_button_rects(self, surface):
+        """Return the Home and Resume button positions for drawing and clicks."""
+        width, height = 360, 48
+        left = (surface.get_width() - width) // 2
+        top = (surface.get_height() - 276) // 2 + 112
+        return [
+            pygame.Rect(left, top, width, height),
+            pygame.Rect(left, top + 60, width, height),
+        ]
+
+    def draw_pause(self, surface, selected_index=1, mouse_pos=None):
+        rect = self._card(surface, 500, 276)
+        title = self.subtitle_font.render("GAME PAUSED", True, WHITE)
+        surface.blit(title, title.get_rect(center=(rect.centerx, rect.y + 48)))
+
+        labels = ("HOME  •  Restart from the beginning", "RESUME  •  Continue this run")
+        for index, (button, label) in enumerate(zip(self.pause_button_rects(surface), labels)):
+            hovered = mouse_pos is not None and button.collidepoint(mouse_pos)
+            active = index == selected_index or hovered
+            fill = (48, 104, 120, 245) if active else (35, 47, 72, 235)
+            border = MINT if active else (105, 128, 158)
+            self._panel(surface, button, color=fill, radius=14)
+            pygame.draw.rect(surface, border, button, width=2, border_radius=14)
+            text = self.font.render(label, True, GOLD if index == 0 else WHITE)
+            surface.blit(text, text.get_rect(center=button.center))
+
+        hint = self.small_font.render("W/S or Up/Down   •   ENTER Choose   •   P/ESC Resume", True, MINT)
+        surface.blit(hint, hint.get_rect(center=(rect.centerx, rect.bottom - 22)))
 
     def draw_world_intro(self, surface, world_number, world_name, timer):
         """Brief world label that fades in and out without blocking play."""
