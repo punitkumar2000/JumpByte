@@ -104,7 +104,7 @@ python main.py
 | `python_concepts.py` | Short Python Coach explanations shown during play |
 | `workload.py` | Suggested module map for viva preparation |
 | `PRESENTATION_GUIDE.md` | Demo walkthrough and viva revision notes |
-| `TEAM_CODE_GUIDE.md` | Five-member file split, key functions, and simple code explanations |
+| `output/pdf/` | Five member-specific code walkthrough and viva PDFs, including assigned source appendices |
 
 ## Python concepts used
 

@@ -2,15 +2,31 @@
   "best_score": 6750,
   "players": {
     "sneha": {
-      "player_name": "Sneha",
-      "best_score": 2500,
+      "player_name": "sneha",
+      "best_score": 2600,
       "best_worlds_cleared": 1,
       "last_questions_asked": 2,
       "last_questions_correct": 2,
-      "last_score": 2500,
+      "last_score": 100,
       "concepts_learned": [
+        "Classes",
         "Conditionals",
         "Dictionaries",
+        "Lists",
+        "Strings",
+        "Tuples"
+      ]
+    },
+    "punit": {
+      "player_name": "Punit",
+      "best_score": 1225,
+      "best_worlds_cleared": 0,
+      "last_questions_asked": 2,
+      "last_questions_correct": 1,
+      "last_score": 1225,
+      "concepts_learned": [
+        "Classes",
+        "Conditionals",
         "Lists",
         "Strings",
         "Tuples"
