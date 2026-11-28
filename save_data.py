@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from settings import TOTAL_STAGES
+
 
 SAVE_FILE = Path(__file__).parent / "high_score.json"
 EMPTY_PROFILE = {
@@ -12,6 +14,11 @@ EMPTY_PROFILE = {
     "last_questions_asked": 0,
     "last_questions_correct": 0,
     "last_score": 0,
+    "resume_stage": 1,
+    "resume_score": 0,
+    "resume_worlds_cleared": 0,
+    "resume_questions_asked": 0,
+    "resume_questions_correct": 0,
     "concepts_learned": [],
 }
 
@@ -57,19 +64,34 @@ def load_player_profile(player_name):
 
     players = _read_save_data().get("players", {})
     saved_profile = players.get(key, {}) if isinstance(players, dict) else {}
-    if isinstance(saved_profile, dict):
-        profile.update(saved_profile)
+    if not isinstance(saved_profile, dict):
+        saved_profile = {}
+    profile.update(saved_profile)
     profile["player_name"] = str(player_name).strip()
     try:
         for field in (
             "best_score", "best_worlds_cleared", "last_questions_asked",
-            "last_questions_correct", "last_score",
+            "last_questions_correct", "last_score", "resume_stage",
+            "resume_score", "resume_worlds_cleared",
+            "resume_questions_asked", "resume_questions_correct",
         ):
             profile[field] = max(0, int(profile.get(field, 0)))
     except (ValueError, TypeError):
         return dict(EMPTY_PROFILE, player_name=str(player_name).strip())
     if not isinstance(profile.get("concepts_learned"), list):
         profile["concepts_learned"] = []
+    if "resume_stage" not in saved_profile:
+        cleared = min(TOTAL_STAGES, profile["best_worlds_cleared"])
+        if cleared >= TOTAL_STAGES:
+            profile["resume_stage"] = 1
+        else:
+            profile["resume_stage"] = cleared + 1
+            profile["resume_worlds_cleared"] = cleared
+            if cleared:
+                profile["resume_score"] = profile["last_score"]
+                profile["resume_questions_asked"] = profile["last_questions_asked"]
+                profile["resume_questions_correct"] = profile["last_questions_correct"]
+    profile["resume_stage"] = min(TOTAL_STAGES, max(1, profile["resume_stage"]))
     return profile
 
 

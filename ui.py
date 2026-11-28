@@ -183,7 +183,8 @@ class UI:
         surface.blit(subtitle, subtitle.get_rect(center=(surface.get_width() // 2, 101)))
 
         saved_progress = self.small_font.render(
-            f"Welcome, {player_name}   •   Best score: {profile.get('best_score', 0):,}"
+            f"Welcome, {player_name}   •   Continue: World {profile.get('resume_stage', 1):02d}/{TOTAL_STAGES}"
+            f"   •   Best score: {profile.get('best_score', 0):,}"
             f"   •   Worlds cleared: {profile.get('best_worlds_cleared', 0)}/{TOTAL_STAGES}",
             True,
             GOLD,
@@ -198,12 +199,26 @@ class UI:
             "Skyforge Citadel", "Ember Dunes", "Coral Reef", "Clockwork Factory",
             "Cloud Kingdom", "Python Core",
         ]
-        worlds = [
-            (f"{number:02d}", name,
-             "START HERE" if number == 1 else
-             "FINAL WORLD" if number == TOTAL_STAGES else "UP NEXT")
-            for number, name in enumerate(world_names, start=1)
-        ]
+        resume_stage = min(
+            TOTAL_STAGES,
+            max(1, int(profile.get("resume_stage", 1))),
+        )
+        cleared_worlds = profile.get("resume_worlds_cleared", 0)
+        worlds = []
+        for number, name in enumerate(world_names, start=1):
+            if number < resume_stage:
+                status = "CLEARED"
+            elif number == resume_stage:
+                status = (
+                    "START HERE"
+                    if resume_stage == 1 and not cleared_worlds
+                    else "CONTINUE HERE"
+                )
+            elif number == resume_stage + 1:
+                status = "UP NEXT"
+            else:
+                status = "LOCKED"
+            worlds.append((f"{number:02d}", name, status))
 
         card_width, card_height, gap = 145, 102, 14
         total_width = 5 * card_width + 4 * gap
@@ -225,7 +240,7 @@ class UI:
             x = start_x + column * (card_width + gap)
             card_y = first_row_y + row * (card_height + row_gap)
             rect = pygame.Rect(x, card_y, card_width, card_height)
-            active = index == 0
+            active = int(number) == resume_stage
             color = (22, 55, 68, 235) if active else (22, 31, 55, 220)
             self._panel(surface, rect, color=color, radius=16)
 
@@ -241,7 +256,7 @@ class UI:
             surface.blit(status_text, status_text.get_rect(center=(centers[column], card_y + 89)))
 
         hint = self.font.render(
-            "ENTER: begin adventure  •  N: switch player  •  ESC: back",
+            f"ENTER: continue at World {resume_stage:02d}  •  N: switch player  •  ESC: back",
             True,
             GOLD,
         )
@@ -299,7 +314,7 @@ class UI:
                 topic_names += ", and more"
             progress_text = (
                 f"BEST SCORE: {profile.get('best_score', 0):,}"
-                f"    WORLDS CLEARED: {profile.get('best_worlds_cleared', 0)}/{TOTAL_STAGES}"
+                f"    CONTINUE FROM WORLD {profile.get('resume_stage', 1):02d}/{TOTAL_STAGES}"
             )
             quiz_text = (
                 f"LAST QUIZ: {profile.get('last_questions_correct', 0)}/"

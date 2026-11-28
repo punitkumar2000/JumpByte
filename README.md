@@ -113,7 +113,7 @@ The project uses variables, conditionals, loops, functions, modules, lists, tupl
 
 To adjust the game without searching several files, edit the clearly marked **EASY GAME SETTINGS** section in `settings.py`. For example, change `MAX_LIVES` to change the 3 lives awarded at the start of every world, `QUIZ_QUESTIONS_PER_WORLD` to change the number of gate questions, and the `SCORE_...` values to adjust rewards. Movement and enemy values are in the same section. `WORLD_WIDTH` changes the overall world bounds; if you change it substantially, review platform and object positions in `levels.py` too.
 
-At the start screen, type a player name and press Enter. JumpByte saves that name's best score, furthest worlds cleared, latest quiz result, and learned topics in `high_score.json` on this computer. Enter the same name next time to see that profile. These profiles are local and do not sync between computers; the save file is ignored by Git.
+At the start screen, type a player name and press Enter. JumpByte saves that name's best score, furthest worlds cleared, latest quiz result, learned topics, and the world to continue from in `high_score.json` on this computer. Enter the same name next time and choose **CONTINUE HERE** on the world map; the saved world starts from its beginning with three fresh lives. These profiles are local and do not sync between computers; the save file is ignored by Git.
 
 ## Project note
 

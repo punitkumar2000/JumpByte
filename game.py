@@ -62,6 +62,20 @@ from save_data import (
 from python_challenges import PYTHON_CHALLENGES, PYTHON_CODE_CHALLENGES
 
 
+STAGE_BUILDERS = (
+    build_stage_one,
+    build_stage_two,
+    build_stage_three,
+    build_stage_four,
+    build_stage_five,
+    build_stage_six,
+    build_stage_seven,
+    build_stage_eight,
+    build_stage_nine,
+    build_stage_ten,
+)
+
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -89,9 +103,11 @@ class Game:
         self.stage_intro_timer = 0.0
         self.reset_stage()
 
-    def reset_stage(self):
-        self.stage_number = 1
-        self.stage = build_stage_one()
+    def reset_stage(self, stage_number=1):
+        """Start a fresh run at a chosen world, with that world's full lives."""
+        stage_number = min(TOTAL_STAGES, max(1, int(stage_number)))
+        self.stage_number = stage_number
+        self.stage = STAGE_BUILDERS[stage_number - 1]()
         self.player = Player(*PLAYER_START_POSITION)
         self.respawn_position = PLAYER_START_POSITION
         self.bullets = []
@@ -160,8 +176,8 @@ class Game:
             self.save_profile_progress()
 
     def save_profile_progress(self):
-        """Save the selected player's score and learning progress."""
-        if not self.profile_name:
+        """Save the selected player's records and world to resume next time."""
+        if not self.profile_name or not self.started:
             return
 
         saved = load_player_profile(self.profile_name)
@@ -180,11 +196,58 @@ class Game:
             saved["last_questions_correct"] = self.questions_correct
         if has_run_progress:
             saved["last_score"] = self.score
+
+        run_finished = self.game_won or (
+            self.stage_summary_open
+            and self.stage_number >= TOTAL_STAGES
+            and self.worlds_cleared >= TOTAL_STAGES
+        )
+        if run_finished:
+            saved["resume_stage"] = 1
+            saved["resume_score"] = 0
+            saved["resume_worlds_cleared"] = 0
+            saved["resume_questions_asked"] = 0
+            saved["resume_questions_correct"] = 0
+        else:
+            next_stage = self.stage_number
+            if self.stage_summary_open and self.stage_number < TOTAL_STAGES:
+                next_stage += 1
+            saved["resume_stage"] = next_stage
+            saved["resume_score"] = self.score
+            saved["resume_worlds_cleared"] = self.worlds_cleared
+            saved["resume_questions_asked"] = self.questions_asked
+            saved["resume_questions_correct"] = self.questions_correct
+
         saved["concepts_learned"] = sorted(
             set(saved["concepts_learned"]) | self.learning_concepts
         )
         self.profile_data = saved
         save_player_profile(self.profile_name, saved)
+
+    def start_profile_game(self):
+        """Continue a named player's saved world from its beginning."""
+        profile = load_player_profile(self.profile_name)
+        resume_stage = profile["resume_stage"]
+        self.profile_data = profile
+        self.profile_preview = profile
+        self.best_score = profile["best_score"]
+
+        self.reset_stage(resume_stage)
+        self.score = profile["resume_score"]
+        self.worlds_cleared = profile["resume_worlds_cleared"]
+        self.questions_asked = profile["resume_questions_asked"]
+        self.questions_correct = profile["resume_questions_correct"]
+        self.learning_concepts = set(profile["concepts_learned"])
+        self.stage_start_score = self.score
+        self.started = True
+        self.show_world_map = False
+        self.stage_intro_timer = 1.8
+
+        # Keep the familiar first lesson on a brand-new adventure.
+        if resume_stage == 1 and self.worlds_cleared == 0:
+            self.show_python_tip("strings")
+        else:
+            self.save_profile_progress()
 
     def drop_cheese(self, enemy):
         for direction in (-2, -1, 1, 2):
@@ -317,6 +380,7 @@ class Game:
 
     def return_home(self):
         """End this run and return to the name-entry home screen."""
+        self.save_profile_progress()
         self.reset_stage()
         self.started = False
         self.show_world_map = False
@@ -334,6 +398,7 @@ class Game:
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self.save_profile_progress()
                 self.running = False
             elif (
                 self.paused
@@ -423,10 +488,7 @@ class Game:
                     pygame.display.toggle_fullscreen()
                 elif event.key == pygame.K_RETURN:
                     if self.show_world_map:
-                        self.show_world_map = False
-                        self.started = True
-                        self.stage_intro_timer = 1.8
-                        self.show_python_tip("strings")
+                        self.start_profile_game()
                 elif event.key == pygame.K_n and self.show_world_map:
                     self.show_world_map = False
                     self.profile_name = ""
@@ -487,9 +549,12 @@ class Game:
                 elif event.key == pygame.K_r and (
                     self.game_over or self.game_won
                 ):
-                    self.reset_stage()
-                    self.started = True
-                    self.stage_intro_timer = 1.8
+                    if self.profile_name:
+                        self.start_profile_game()
+                    else:
+                        self.reset_stage()
+                        self.started = True
+                        self.stage_intro_timer = 1.8
 
     def lose_life(self):
         if self.hit_cooldown > 0 or self.game_over:
@@ -549,20 +614,8 @@ class Game:
             self.game_won = True
             return
 
-        stage_builders = (
-            build_stage_one,
-            build_stage_two,
-            build_stage_three,
-            build_stage_four,
-            build_stage_five,
-            build_stage_six,
-            build_stage_seven,
-            build_stage_eight,
-            build_stage_nine,
-            build_stage_ten,
-        )
         self.stage_number += 1
-        self.stage = stage_builders[self.stage_number - 1]()
+        self.stage = STAGE_BUILDERS[self.stage_number - 1]()
         # Each new world starts with its own full set of lives.
         self.player_lives = MAX_LIVES
 

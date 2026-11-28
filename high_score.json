@@ -1,5 +1,5 @@
 {
-  "best_score": 6750,
+  "best_score": 8450,
   "players": {
     "sneha": {
       "player_name": "sneha",
@@ -32,6 +32,28 @@
         "Lists",
         "Strings",
         "Tuples"
+      ]
+    },
+    "anjali": {
+      "player_name": "Anjali",
+      "best_score": 8450,
+      "best_worlds_cleared": 4,
+      "last_questions_asked": 13,
+      "last_questions_correct": 13,
+      "last_score": 8450,
+      "concepts_learned": [
+        "Booleans",
+        "Conditionals",
+        "Dictionaries",
+        "Jumping",
+        "Lists",
+        "Loops",
+        "Objects",
+        "Player Movement",
+        "Scoring",
+        "Strings",
+        "Tuples",
+        "Variables"
       ]
     }
   }
