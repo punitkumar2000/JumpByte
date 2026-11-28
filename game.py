@@ -500,6 +500,8 @@ class Game:
         )
         self.stage_number += 1
         self.stage = stage_builders[self.stage_number - 1]()
+        # Each new world starts with its own full set of lives.
+        self.player_lives = MAX_LIVES
 
         self.stage_intro_timer = 1.8
         self.prepare_background()

@@ -14,7 +14,7 @@ The game code, level layouts, scenery, effects, and sound effects are made for J
 - Points for coins, enemies, checkpoints, and completing worlds; best score saves locally
 - Themed floor hazards that must be jumped over
 - Speed-boost power-ups
-- Mid-world checkpoints, lives, respawn, game-over, and restart
+- Mid-world checkpoints, 3 lives per world, respawn, game-over, and restart
 - Original scenery, platform details, animated characters, and visual effects
 - Generated sound effects for coins, jumps, power-ups, checkpoints, stomps, and damage
 - `M` key to mute or unmute sound effects
@@ -110,7 +110,7 @@ python main.py
 
 The project uses variables, conditionals, loops, functions, modules, lists, tuples, dictionaries, classes, objects, and inheritance. `Boss` inherits from `Enemy`; the game stores platforms, coins, enemies, and power-ups in collections.
 
-To adjust the game without searching several files, edit the clearly marked **EASY GAME SETTINGS** section in `settings.py`. For example, change `MAX_LIVES` to change starting lives, `QUIZ_QUESTIONS_PER_WORLD` to change the number of gate questions, and the `SCORE_...` values to adjust rewards. Movement and enemy values are in the same section. `WORLD_WIDTH` changes the overall world bounds; if you change it substantially, review platform and object positions in `levels.py` too.
+To adjust the game without searching several files, edit the clearly marked **EASY GAME SETTINGS** section in `settings.py`. For example, change `MAX_LIVES` to change the 3 lives awarded at the start of every world, `QUIZ_QUESTIONS_PER_WORLD` to change the number of gate questions, and the `SCORE_...` values to adjust rewards. Movement and enemy values are in the same section. `WORLD_WIDTH` changes the overall world bounds; if you change it substantially, review platform and object positions in `levels.py` too.
 
 At the start screen, type a player name and press Enter. JumpByte saves that name's best score, furthest worlds cleared, latest quiz result, and learned topics in `high_score.json` on this computer. Enter the same name next time to see that profile. These profiles are local and do not sync between computers; the save file is ignored by Git.
 
